@@ -1,10 +1,7 @@
 import { env } from '../config/env.js';
 import { appConfig } from '../config/load-config.js';
 import { isGroupJid } from './filters.js';
-
-function digits(value) {
-  return String(value || '').replace(/\D/g, '');
-}
+import { digits, phoneFromJid, samePhone } from './phone.js';
 
 function ownerNumbers() {
   const fromConfig = Array.isArray(appConfig.bot.ownerNumbers) ? appConfig.bot.ownerNumbers : [];
@@ -15,14 +12,7 @@ function ownerNumbers() {
   return [...new Set([...fromConfig, ...fromEnv, ...fallback].map(digits).filter(Boolean))];
 }
 
-export function phoneFromJid(jid) {
-  return digits(String(jid || '').split('@')[0].split(':')[0]);
-}
-
-function samePhone(left, right) {
-  if (!left || !right) return false;
-  return left === right || left.endsWith(right) || right.endsWith(left);
-}
+export { phoneFromJid, samePhone } from './phone.js';
 
 export function isOwnerJid(jid, sock = null) {
   if (isGroupJid(jid)) return false;

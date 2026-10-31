@@ -1,6 +1,7 @@
 import { upsertChat } from '../db/repositories/chats.js';
 import { addMessage } from '../db/repositories/conversations.js';
 import { logger } from '../utils/logger.js';
+import { stripLoneSurrogates, truncateText } from '../utils/text.js';
 import { extractText, isGroupJid, unwrapMessageContent } from './filters.js';
 import { loadGroupDetails } from './group.js';
 import { getCurrentSocket } from './socket.js';
@@ -9,8 +10,7 @@ const MAX_PREVIEW = 240;
 
 function preview(text) {
   const value = String(text || '').replace(/\s+/g, ' ').trim();
-  if (value.length <= MAX_PREVIEW) return value;
-  return `${value.slice(0, MAX_PREVIEW)}...`;
+  return truncateText(value, MAX_PREVIEW);
 }
 
 function participantJid(message, jid) {
@@ -56,14 +56,17 @@ export async function logIncomingMessage(sock, message, {
   const jid = message?.key?.remoteJid;
   if (!jid) return;
 
-  const body = text || extractText(message) || (unwrapMessageContent(message).imageMessage ? '[image]' : '');
+  const body = stripLoneSurrogates(
+    text || extractText(message) || (unwrapMessageContent(message).imageMessage ? '[image]' : ''),
+  );
   if (!body) return;
 
+  const safePushName = pushName ? stripLoneSurrogates(String(pushName)) : null;
   const type = isGroupJid(jid) ? 'group' : 'dm';
   const sender = participantJid(message, jid);
   const groupDetails = type === 'group' ? await loadGroupDetails(sock, jid) : null;
   const name = type === 'dm'
-    ? await resolveChatName(sock, jid, pushName)
+    ? await resolveChatName(sock, jid, safePushName)
     : groupDetails?.name || await resolveChatName(sock, jid, null);
 
   try {
@@ -72,10 +75,10 @@ export async function logIncomingMessage(sock, message, {
       name,
       type,
       lastMessage: preview(body),
-      lastSender: pushName || sender,
+      lastSender: safePushName || sender,
       metadata: {
         lastParticipant: sender,
-        lastPushName: pushName || null,
+        lastPushName: safePushName,
         mentioned,
         replyToBot,
         group: groupDetails || undefined,
@@ -93,7 +96,7 @@ export async function logIncomingMessage(sock, message, {
       role: 'user',
       content: body,
       metadata: {
-        pushName: pushName || (fromMe ? 'You' : null),
+        pushName: safePushName || (fromMe ? 'You' : null),
         participant: sender,
         fromMe,
         messageId: message.key?.id || null,

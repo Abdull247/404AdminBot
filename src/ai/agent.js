@@ -171,6 +171,7 @@ export async function generateReply({
     sock,
     isOwner: owner,
     environment,
+    message,
   });
   const greeting = Boolean(text) && isGreeting(text);
   const datetimeEnabled = tools.some((tool) => tool.function?.name === 'get_datetime');

@@ -15,6 +15,7 @@ import {
   shouldReplyToMessage,
 } from './group.js';
 import { logIncomingMessage } from './log-message.js';
+import { phoneFromMessage } from './phone.js';
 import { hasIncomingAttachment, storeIncomingFile } from './attachments.js';
 import { markBotReply, wasRecentBotReply } from './outbound.js';
 import { pickGroupReaction, reactToMessage } from './react.js';
@@ -111,8 +112,20 @@ async function processAddressedMessage(sock, message, ctx) {
     ? (stripBotMention(text, botNames(sock), botJids(sock)) || text)
     : text;
 
+  const senderPhone = phoneFromMessage(message);
+
   logger.info(
-    { jid, pushName, group, mentioned, replyToBot, trigger, text },
+    {
+      jid,
+      pushName,
+      group,
+      mentioned,
+      replyToBot,
+      trigger,
+      text,
+      pn: senderPhone?.pn || null,
+      lid: senderPhone?.lid || null,
+    },
     'incoming WhatsApp message',
   );
 
