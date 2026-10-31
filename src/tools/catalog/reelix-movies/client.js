@@ -152,7 +152,8 @@ function safeJid(jid) {
 }
 
 export async function downloadReelixVideo(url, { jid = '', title = '', cookie = '' } = {}) {
-  const maxBytes = Math.max(1, env.REELIX_VIDEO_MAX_MB || 90) * 1024 * 1024;
+  const maxMb = env.REELIX_VIDEO_MAX_MB || 500;
+  const maxBytes = Math.max(1, maxMb) * 1024 * 1024;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), env.REELIX_VIDEO_TIMEOUT_MS || 300000);
   const headers = {
@@ -201,7 +202,7 @@ export async function downloadReelixVideo(url, { jid = '', title = '', cookie = 
     transform(chunk, _enc, callback) {
       size += chunk.length;
       if (size > maxBytes) {
-        callback(new Error(`video exceeds the ${env.REELIX_VIDEO_MAX_MB || 90}MB send limit`));
+        callback(new Error(`video exceeds the ${maxMb}MB send limit`));
         return;
       }
       callback(null, chunk);

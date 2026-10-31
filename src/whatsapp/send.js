@@ -1,5 +1,10 @@
 import fs from 'node:fs';
 import { logger } from '../utils/logger.js';
+import { env } from '../config/env.js';
+
+function mediaUploadTimeoutMs() {
+  return env.REELIX_VIDEO_TIMEOUT_MS || 300000;
+}
 
 export async function sendArtifacts(sock, jid, artifacts = [], quoted) {
   for (const file of artifacts) {
@@ -7,7 +12,10 @@ export async function sendArtifacts(sock, jid, artifacts = [], quoted) {
     const mime = String(file.mimetype || '').toLowerCase();
     const isImage = mime.startsWith('image/') && mime !== 'image/svg+xml';
     const isVideo = mime.startsWith('video/');
-    const options = quoted ? { quoted } : undefined;
+    const options = {
+      ...(quoted ? { quoted } : {}),
+      mediaUploadTimeoutMs: isVideo ? mediaUploadTimeoutMs() : undefined,
+    };
     try {
       const payload = isImage
         ? {
@@ -34,10 +42,10 @@ export async function sendArtifacts(sock, jid, artifacts = [], quoted) {
       if (isVideo) {
         try {
           await sock.sendMessage(jid, {
-            document: fs.readFileSync(file.path),
+            document: fs.createReadStream(file.path),
             fileName: file.filename,
             mimetype: file.mimetype || 'video/mp4',
-          }, options);
+          }, { ...options, mediaUploadTimeoutMs: mediaUploadTimeoutMs() });
           logger.info({ jid, filename: file.filename }, 'sent video as document after video send failed');
           continue;
         } catch (docError) {
@@ -45,6 +53,14 @@ export async function sendArtifacts(sock, jid, artifacts = [], quoted) {
         }
       }
       logger.error({ err: error, jid, filename: file.filename }, 'failed to send generated file');
+    } finally {
+      if (isVideo) {
+        try {
+          fs.unlinkSync(file.path);
+        } catch {
+          // temp file already gone
+        }
+      }
     }
   }
 }
