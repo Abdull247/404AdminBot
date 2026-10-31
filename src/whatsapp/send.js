@@ -12,9 +12,10 @@ export async function sendArtifacts(sock, jid, artifacts = [], quoted) {
     const mime = String(file.mimetype || '').toLowerCase();
     const isImage = mime.startsWith('image/') && mime !== 'image/svg+xml';
     const isVideo = mime.startsWith('video/');
+    const isAudio = mime.startsWith('audio/');
     const options = {
       ...(quoted ? { quoted } : {}),
-      mediaUploadTimeoutMs: isVideo ? mediaUploadTimeoutMs() : undefined,
+      mediaUploadTimeoutMs: isVideo || isAudio ? mediaUploadTimeoutMs() : undefined,
     };
     try {
       const payload = isImage
@@ -31,30 +32,37 @@ export async function sendArtifacts(sock, jid, artifacts = [], quoted) {
               mimetype: file.mimetype || 'video/mp4',
               caption: file.caption || file.filename,
             }
-          : {
-              document: fs.readFileSync(file.path),
-              fileName: file.filename,
-              mimetype: file.mimetype || 'text/plain',
-            };
+          : isAudio
+            ? {
+                audio: fs.createReadStream(file.path),
+                fileName: file.filename,
+                mimetype: file.mimetype || 'audio/mpeg',
+                ptt: Boolean(file.ptt),
+              }
+            : {
+                document: fs.readFileSync(file.path),
+                fileName: file.filename,
+                mimetype: file.mimetype || 'text/plain',
+              };
       await sock.sendMessage(jid, payload, options);
       logger.info({ jid, filename: file.filename, mime }, 'sent generated file');
     } catch (error) {
-      if (isVideo) {
+      if (isVideo || isAudio) {
         try {
           await sock.sendMessage(jid, {
             document: fs.createReadStream(file.path),
             fileName: file.filename,
-            mimetype: file.mimetype || 'video/mp4',
+            mimetype: file.mimetype || (isAudio ? 'audio/mpeg' : 'video/mp4'),
           }, { ...options, mediaUploadTimeoutMs: mediaUploadTimeoutMs() });
-          logger.info({ jid, filename: file.filename }, 'sent video as document after video send failed');
+          logger.info({ jid, filename: file.filename }, 'sent media as document after send failed');
           continue;
         } catch (docError) {
-          logger.error({ err: docError, jid, filename: file.filename }, 'failed to send video document fallback');
+          logger.error({ err: docError, jid, filename: file.filename }, 'failed to send media document fallback');
         }
       }
       logger.error({ err: error, jid, filename: file.filename }, 'failed to send generated file');
     } finally {
-      if (isVideo) {
+      if (isVideo || isAudio) {
         try {
           fs.unlinkSync(file.path);
         } catch {

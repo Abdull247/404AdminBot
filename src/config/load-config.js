@@ -32,6 +32,16 @@ const defaults = {
       maxGlobal: 48,
       notifyQueued: true,
     },
+    reelixMusic: {
+      enabled: true,
+      publicAccess: true,
+      allowInGroups: true,
+      allowStream: true,
+      allowStreamInDms: true,
+      allowStreamInGroups: true,
+      publicStreamEndpoint: true,
+      defaultSource: 'audiomack',
+    },
   },
   memory: {
     enabled: true,

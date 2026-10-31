@@ -2,6 +2,7 @@ import { appConfig } from '../config/load-config.js';
 import { persistenceFeatureEnabled } from '../config/persistence.js';
 import { getDefaultSandbox, sandboxToolNames } from '../config/sandboxes.js';
 import { canAccessReelixDownload } from './catalog/reelix-movies/access.js';
+import { canAccessReelixMusic, canAccessReelixMusicStream } from './catalog/reelix-music/access.js';
 import { loadCatalog } from './catalog/load.js';
 import { getEnabledTools, registerTool } from './registry.js';
 import { logger } from '../utils/logger.js';
@@ -45,6 +46,26 @@ function withReelixDownload(definition) {
   return clone;
 }
 
+const MUSIC_STREAM_ACTION = 'search | details | stream. Default search. action=stream sends the track as an mp3 audio file.';
+const MUSIC_PUBLIC_ACTION = 'search | details. Default search.';
+
+function withReelixMusicStream(definition) {
+  const clone = structuredClone(definition);
+  const fn = clone.function;
+  const props = fn.parameters?.properties || {};
+  if (props.action) props.action.description = MUSIC_STREAM_ACTION;
+  return clone;
+}
+
+function withoutReelixMusicStream(definition) {
+  const clone = structuredClone(definition);
+  const fn = clone.function;
+  fn.description = `${fn.description} Streaming is not available in this chat.`;
+  const props = fn.parameters?.properties || {};
+  if (props.action) props.action.description = MUSIC_PUBLIC_ACTION;
+  return clone;
+}
+
 function withoutReelixDownload(definition) {
   const props = definition?.function?.parameters?.properties;
   if (!props) return definition;
@@ -76,15 +97,23 @@ export function loadTools(context = {}) {
   const active = getDefaultSandbox();
   const persistenceOn = persistenceFeatureEnabled();
   const downloads = canAccessReelixDownload(context);
+  const musicOn = canAccessReelixMusic(context);
+  const musicStream = canAccessReelixMusicStream(context);
   return tools.filter((tool) => {
     const name = tool.function?.name;
     if (name === 'create_agent') return persistenceOn;
+    if (name === 'reelix_music') return musicOn;
     if (!sandboxTools.size || !active) return true;
     if (!sandboxTools.has(name)) return true;
     return name === active.tool || name === active.id;
   }).map((tool) => {
-    if (tool.function?.name !== 'reelix_movies') return tool;
-    return downloads ? withReelixDownload(tool) : withoutReelixDownload(tool);
+    if (tool.function?.name === 'reelix_movies') {
+      return downloads ? withReelixDownload(tool) : withoutReelixDownload(tool);
+    }
+    if (tool.function?.name === 'reelix_music') {
+      return musicStream ? withReelixMusicStream(tool) : withoutReelixMusicStream(tool);
+    }
+    return tool;
   });
 }
 

@@ -44,6 +44,16 @@
       "maxPerChat": 8,
       "maxGlobal": 48,
       "notifyQueued": true
+    },
+    "reelixMusic": {
+      "enabled": true,
+      "publicAccess": true,
+      "allowInGroups": true,
+      "allowStream": true,
+      "allowStreamInDms": true,
+      "allowStreamInGroups": true,
+      "publicStreamEndpoint": true,
+      "defaultSource": "audiomack"
     }
   },
   "memory": {
@@ -53,7 +63,7 @@
   },
   "tools": {
     "enabled": true,
-    "allow": ["write_file", "web_search", "get_datetime", "sandbox", "linux_machine", "list_chats", "summarize_chat", "react", "screenshot", "send_sticker", "generate_image", "file_storage", "create_agent", "reelix_movies"],
+    "allow": ["write_file", "web_search", "get_datetime", "sandbox", "linux_machine", "list_chats", "summarize_chat", "react", "screenshot", "send_sticker", "generate_image", "file_storage", "create_agent", "reelix_movies", "reelix_music"],
     "maxRounds": 10,
     "handoffAfterRounds": 3
   },

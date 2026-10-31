@@ -110,16 +110,20 @@
 "Trending monitoring and scheduled notifications"
 ]
 },
-"reelix_music": {
-"name": "Reelix Music",
-"type": "Music streaming application",
-"platform": "Android",
-"technologies": [
-"Kotlin",
-"XML",
-"Custom backend and proxy architecture"
-],
-"description": "A music streaming project that extends the Reelix ecosystem with music discovery and playback.",
+        "reelix_music": {
+        "name": "Reelix Music",
+        "type": "Music streaming application",
+        "platform": "Android",
+        "technologies": [
+        "Kotlin",
+        "XML",
+        "Custom backend and proxy architecture"
+        ],
+        "architecture": {
+        "backend": "https://reelixstreaming.onrender.com",
+        "proxy": "https://reelixmusicproxy.onrender.com/proxy/api"
+        },
+        "description": "A music streaming project that extends the Reelix ecosystem with music discovery and playback.",
 "visual_identity": "Blue-themed interface with a music-oriented logo and a polished glass-style player.",
 "implemented_capabilities": [
 "Music playback interface",

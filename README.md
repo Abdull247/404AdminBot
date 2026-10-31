@@ -34,6 +34,7 @@ src/
 - `.env` holds secrets and connection URLs.
 - `migrations/` holds SQL files applied on startup.
 - `src/tools/catalog/` holds one folder per tool (`config.json` + `handler.js`).
+- `reelix_music` searches tracks, fetches details, and sends the song as an mp3. Default source is Audiomack (`config.json` `bot.reelixMusic`). HMAC credentials go in `REELIX_MUSIC_*`. Public stream redirects live at `GET /misc/stream?trackId=` when `BASE_URL` and `publicStreamEndpoint` are on.
 - `personalities/` holds one JSON file per AI personality.
 - `write_file` can create `.html`, `.css`, `.js`, `.txt`, `.json`, and `.md` files, send them on WhatsApp, then send a short recap.
 - `sandbox` runs code and commands in a temporary E2B Linux VM. One sandbox is reused per WhatsApp chat until it is killed or times out.

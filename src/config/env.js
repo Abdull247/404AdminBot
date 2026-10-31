@@ -128,6 +128,16 @@ export const env = {
   REELIX_VIDEO_TIMEOUT_MS: optionalIntWithDefaultMs('REELIX_VIDEO_TIMEOUT_MS', 300000),
   REELIX_VIDEO_REFERER: optional('REELIX_VIDEO_REFERER', ''),
   REELIX_VIDEO_USER_AGENT: optional('REELIX_VIDEO_USER_AGENT', ''),
+  REELIX_MUSIC_PROXY_BASE_URL: optional(
+    'REELIX_MUSIC_PROXY_BASE_URL',
+    'https://reelixmusicproxy.onrender.com',
+  ).replace(/\/+$/, ''),
+  REELIX_MUSIC_BOT_KEY: optional('REELIX_MUSIC_BOT_KEY', ''),
+  REELIX_MUSIC_BOT_HMAC_SECRET: optional('REELIX_MUSIC_BOT_HMAC_SECRET', ''),
+  REELIX_MUSIC_BOT_TIMEOUT_MS: optionalInt('REELIX_MUSIC_BOT_TIMEOUT_MS', 30000),
+  REELIX_MUSIC_AUDIO_MAX_MB: optionalInt('REELIX_MUSIC_AUDIO_MAX_MB', 50),
+  REELIX_MUSIC_AUDIO_TIMEOUT_MS: optionalIntWithDefaultMs('REELIX_MUSIC_AUDIO_TIMEOUT_MS', 180000),
+  BASE_URL: optional('BASE_URL', '').replace(/\/+$/, ''),
 };
 
 if (env.E2B_API_KEY && !process.env.E2B_API_KEY) {

@@ -6,6 +6,7 @@ import { persistenceWorkerStatus } from '../persistence/worker.js';
 import { logger } from '../utils/logger.js';
 import { requestQueueSnapshot } from '../whatsapp/request-queue.js';
 import { getConnectionStatus, getCurrentSocket } from '../whatsapp/socket.js';
+import { handleMiscStream, logMiscStreamError } from './misc-stream.js';
 
 function json(res, status, body) {
   const payload = JSON.stringify(body);
@@ -39,6 +40,13 @@ export function startHealthServer() {
     const path = String(req.url || '/').split('?')[0];
     if (req.method === 'GET' && (path === '/' || path === '/health' || path === '/ping')) {
       json(res, 200, healthPayload());
+      return;
+    }
+    if (req.method === 'GET' && path === '/misc/stream') {
+      handleMiscStream(req, res).catch((error) => {
+        logMiscStreamError(error);
+        if (!res.headersSent) json(res, 500, { ok: false, error: 'stream failed' });
+      });
       return;
     }
     json(res, 404, { ok: false, error: 'not found' });
