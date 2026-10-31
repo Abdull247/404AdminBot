@@ -3,8 +3,9 @@ import { logger } from '../utils/logger.js';
 export const HOURGLASS = '\u231B';
 export const CHECK = '\u2705';
 export const IMAGE_DONE = '\u{1F5BC}\uFE0F';
+export const POPCORN = '\u{1F37F}';
 
-export const BUSY_REACTIONS = new Set([HOURGLASS, CHECK]);
+export const BUSY_REACTIONS = new Set([HOURGLASS, CHECK, POPCORN]);
 
 export function normalizeEmoji(value) {
   const text = String(value || '').trim();

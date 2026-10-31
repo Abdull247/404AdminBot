@@ -4,6 +4,7 @@ import { handleMenu } from './menu.js';
 import { parseCommand } from './parse.js';
 import { handlePersistence } from './persistence.js';
 import { handlePersonalities } from './personalities.js';
+import { handleReelix } from './reelix.js';
 import { getCommand, listCommands, registerCommand } from './registry.js';
 
 let loaded = false;
@@ -23,6 +24,13 @@ function loadCommands() {
     usage: '.personalities  |  .personalities - Helpfulness',
     description: 'List AI personalities, or switch this chat to one.',
     handler: handlePersonalities,
+  });
+  registerCommand({
+    name: 'reelix',
+    aliases: ['movie', 'movies', 'film'],
+    usage: '.reelix <title>  |  .reelix search <title>  |  .reelix details <id>',
+    description: 'Search Reelix movies and series, then show details, cast, or resources.',
+    handler: handleReelix,
   });
   if (persistenceFeatureEnabled()) {
     const command = getPersistenceConfig().command;

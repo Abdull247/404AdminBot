@@ -2,6 +2,7 @@ import { enqueueNotification, listPendingNotifications, markNotificationFailed, 
 import { getJob, updateJob } from '../db/repositories/persistence/jobs.js';
 import { getCurrentSocket } from '../whatsapp/socket.js';
 import { sendArtifacts } from '../whatsapp/send.js';
+import { toWhatsAppText } from '../whatsapp/markdown.js';
 import { completionReply } from './format.js';
 import { logger } from '../utils/logger.js';
 
@@ -31,7 +32,7 @@ export async function flushNotifications() {
       if (files.length) {
         await sendArtifacts(sock, job.chat_jid, files);
       }
-      await sock.sendMessage(job.chat_jid, { text });
+      await sock.sendMessage(job.chat_jid, { text: toWhatsAppText(text) || text });
       await markNotificationSent(item.id);
       await updateJob(job.id, { notifyStatus: 'sent' });
       sent += 1;

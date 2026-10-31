@@ -1,0 +1,193 @@
+import { reelixConfigured } from '../tools/catalog/reelix-movies/client.js';
+import { handler as reelixMovies } from '../tools/catalog/reelix-movies/handler.js';
+import { detailsCaption } from '../tools/catalog/reelix-movies/format.js';
+import { HOURGLASS, POPCORN, reactToMessage } from '../whatsapp/react.js';
+
+function parseArg(arg) {
+  const raw = String(arg || '').trim();
+  if (!raw) return { action: 'help', rest: '' };
+  const parts = raw.split(/\s+/);
+  const first = parts[0].toLowerCase();
+  const actions = new Set(['search', 'details', 'detail', 'info', 'resources', 'cast', 'seasons', 'season']);
+  if (actions.has(first)) {
+    const action = first === 'detail' || first === 'info'
+      ? 'details'
+      : first === 'season' ? 'seasons' : first;
+    return { action, rest: parts.slice(1).join(' ').trim() };
+  }
+  return { action: 'search', rest: raw };
+}
+
+function helpText() {
+  return [
+    '*Reelix*',
+    '',
+    'Search movies and series, then pull details, cast, or resources.',
+    '',
+    '*.reelix <title>*',
+    '  Search, then show the top match with its banner.',
+    '*.reelix search <title>*',
+    '  Search only and list matches.',
+    '*.reelix details <subjectId>*',
+    '  Full details plus banner for a known id.',
+    '*.reelix cast <subjectId>*',
+    '*.reelix resources <subjectId>*',
+    '*.reelix seasons <subjectId>*',
+  ].join('\n');
+}
+
+function formatSearchList(summary) {
+  if (!summary.results?.length) {
+    return `No Reelix titles matched "${summary.keyword || 'that'}".`;
+  }
+  const lines = [`*Reelix search* · ${summary.keyword}`, ''];
+  summary.results.slice(0, 8).forEach((item, index) => {
+    const bits = [item.type, item.rating ? `IMDb ${item.rating}` : null, item.releaseDate || null]
+      .filter(Boolean)
+      .join(' · ');
+    lines.push(`${index + 1}. *${item.title}*`);
+    lines.push(`   ${bits || item.subjectId}  id ${item.subjectId}`);
+  });
+  lines.push('');
+  lines.push('Details: .reelix details <id>');
+  return lines.join('\n');
+}
+
+function formatDetails(info) {
+  const lines = [detailsCaption(info)];
+  if (info.country) lines.push(info.country);
+  if (info.description) {
+    lines.push('');
+    lines.push(info.description.length > 700 ? `${info.description.slice(0, 700).trim()}…` : info.description);
+  }
+  if (info.subjectId) {
+    lines.push('');
+    lines.push(`id ${info.subjectId}  ·  .reelix cast ${info.subjectId}`);
+  }
+  return lines.filter(Boolean).join('\n').trim();
+}
+
+function formatCast(info) {
+  const lines = [`*Cast*${info.subjectId ? ` · ${info.subjectId}` : ''}`, ''];
+  if (!info.cast?.length && !info.crew?.length) return 'No cast was returned for that title.';
+  for (const person of info.cast || []) {
+    lines.push(`• ${person.name}${person.character ? ` as ${person.character}` : ''}`);
+  }
+  if (info.crew?.length) {
+    lines.push('');
+    lines.push('*Crew*');
+    for (const person of info.crew) {
+      lines.push(`• ${person.name}${person.job ? ` · ${person.job}` : ''}`);
+    }
+  }
+  return lines.join('\n');
+}
+
+function formatResources(info) {
+  const lines = [`*Resources*${info.title ? ` · ${info.title}` : ''}`, ''];
+  if (info.genre) lines.push(info.genre);
+  if (info.totalEpisode) lines.push(`${info.totalEpisode} episode resource(s)`);
+  if (!info.items?.length) {
+    lines.push('No resource rows came back.');
+    return lines.join('\n');
+  }
+  lines.push('');
+  for (const item of info.items.slice(0, 12)) {
+    const label = [item.title, item.quality, item.size].filter(Boolean).join(' · ');
+    const ep = item.season || item.episode
+      ? `S${item.season || '-'}E${item.episode || '-'}`
+      : '';
+    lines.push(`• ${[ep, label].filter(Boolean).join(' ')}`.trim());
+  }
+  if (info.total > 12) lines.push(`…and ${info.total - 12} more`);
+  return lines.join('\n');
+}
+
+function formatSeasons(info) {
+  const lines = [`*Seasons*${info.title ? ` · ${info.title}` : ''}`, ''];
+  if (!info.seasons?.length) return 'No season list came back for that title.';
+  for (const season of info.seasons) {
+    const count = season.episodeCount ? `${season.episodeCount} ep` : '';
+    lines.push(`• Season ${season.season ?? '?'} ${season.title || ''} ${count}`.trim());
+  }
+  return lines.join('\n');
+}
+
+async function maybeReact(sock, message, emoji) {
+  if (!sock || !message) return;
+  await reactToMessage(sock, message, emoji);
+}
+
+export async function handleReelix({ arg, sock, message, jid }) {
+  if (!reelixConfigured()) {
+    return 'Reelix is not configured. Set REELIX_PROXY_BASE_URL, REELIX_BOT_KEY, and REELIX_BOT_HMAC_SECRET.';
+  }
+
+  const parsed = parseArg(arg);
+  if (parsed.action === 'help') return helpText();
+
+  await maybeReact(sock, message, HOURGLASS);
+  const context = { jid, sock, message };
+
+  try {
+    if (parsed.action === 'search' && parsed.rest) {
+      const search = await reelixMovies({ action: 'search', query: parsed.rest }, context);
+      if (!search.ok) return search.error || 'Reelix search failed.';
+      const top = search.results?.[0];
+      if (top?.subjectId) {
+        const details = await reelixMovies({ action: 'details', subjectId: top.subjectId }, context);
+        if (details.ok) {
+          await maybeReact(sock, message, POPCORN);
+          const extras = search.results.slice(1, 6);
+          const extraLines = extras.length
+            ? ['', '*Other matches*', ...extras.map((item, index) => `${index + 2}. *${item.title}* · ${item.type} · id ${item.subjectId}`)]
+            : [];
+          return {
+            text: [formatDetails(details), ...extraLines].join('\n'),
+            artifacts: details.files || [],
+          };
+        }
+      }
+      await maybeReact(sock, message, POPCORN);
+      return { text: formatSearchList(search), artifacts: [] };
+    }
+
+    if (parsed.action === 'details') {
+      const subjectId = parsed.rest;
+      if (!subjectId) return 'Give a subject id, for example .reelix details 111.';
+      const details = await reelixMovies({ action: 'details', subjectId }, context);
+      if (!details.ok) return details.error || 'Reelix details failed.';
+      await maybeReact(sock, message, POPCORN);
+      return { text: formatDetails(details), artifacts: details.files || [] };
+    }
+
+    if (parsed.action === 'cast') {
+      if (!parsed.rest) return 'Give a subject id, for example .reelix cast 111.';
+      const cast = await reelixMovies({ action: 'cast', subjectId: parsed.rest }, context);
+      if (!cast.ok) return cast.error || 'Reelix cast failed.';
+      await maybeReact(sock, message, POPCORN);
+      return formatCast(cast);
+    }
+
+    if (parsed.action === 'resources') {
+      if (!parsed.rest) return 'Give a subject id, for example .reelix resources 111.';
+      const resources = await reelixMovies({ action: 'resources', subjectId: parsed.rest }, context);
+      if (!resources.ok) return resources.error || 'Reelix resources failed.';
+      await maybeReact(sock, message, POPCORN);
+      return formatResources(resources);
+    }
+
+    if (parsed.action === 'seasons') {
+      if (!parsed.rest) return 'Give a subject id, for example .reelix seasons 111.';
+      const seasons = await reelixMovies({ action: 'seasons', subjectId: parsed.rest }, context);
+      if (!seasons.ok) return seasons.error || 'Reelix seasons failed.';
+      await maybeReact(sock, message, POPCORN);
+      return formatSeasons(seasons);
+    }
+
+    return helpText();
+  } catch (error) {
+    await maybeReact(sock, message, POPCORN);
+    return error.message || 'Reelix request failed.';
+  }
+}

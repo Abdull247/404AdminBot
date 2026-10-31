@@ -115,6 +115,13 @@ export const env = {
     'SCREENSHOTLAYER_BASE_URL',
     'https://api.screenshotlayer.com/api/capture',
   ).replace(/\/+$/, ''),
+  REELIX_PROXY_BASE_URL: optional(
+    'REELIX_PROXY_BASE_URL',
+    'https://reelixproxy.onrender.com',
+  ).replace(/\/+$/, ''),
+  REELIX_BOT_KEY: optional('REELIX_BOT_KEY', ''),
+  REELIX_BOT_HMAC_SECRET: optional('REELIX_BOT_HMAC_SECRET', ''),
+  REELIX_BOT_TIMEOUT_MS: optionalInt('REELIX_BOT_TIMEOUT_MS', 30000),
 };
 
 if (env.E2B_API_KEY && !process.env.E2B_API_KEY) {

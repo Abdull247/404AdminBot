@@ -20,6 +20,7 @@ import { markBotReply, wasRecentBotReply } from './outbound.js';
 import { pickGroupReaction, reactToMessage } from './react.js';
 import { enqueueChatWork } from './request-queue.js';
 import { sendArtifacts } from './send.js';
+import { toWhatsAppText } from './markdown.js';
 
 const inflight = new Set();
 const queuedNoticeAt = new Map();
@@ -171,9 +172,11 @@ async function processAddressedMessage(sock, message, ctx) {
           existingReaction,
           image,
         })
-      : { text: commandReply, artifacts: [] };
+      : (typeof commandReply === 'object' && commandReply
+        ? commandReply
+        : { text: commandReply, artifacts: [] });
     const artifacts = reply.artifacts || [];
-    const replyText = String((typeof reply === 'string' ? reply : reply.text) || '').trim()
+    const replyText = toWhatsAppText(String((typeof reply === 'string' ? reply : reply.text) || '').trim())
       || (artifacts.length ? "I've finished." : 'I could not finish that reply. Send it again and I will try a shorter pass.');
 
     if (artifacts.length) {

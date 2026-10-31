@@ -1,0 +1,45 @@
+{
+  "enabled": true,
+  "definition": {
+    "type": "function",
+    "function": {
+      "name": "reelix_movies",
+      "description": "Look up movies and TV series on Reelix. Use this when the user asks to search for a title, wants details about a movie or series, asks who is in the cast, or wants availability/resources. Start with action=search (returns structured JSON). Then call action=details with the subjectId for a specific title: that sends the banner image and returns name, rating, type, genre, and description for a recap. Use action=cast, action=resources, or action=seasons only after you have a subjectId. Never invent titles that were not returned.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "search | details | resources | cast | seasons. Default search."
+          },
+          "query": {
+            "type": "string",
+            "description": "Search query for action=search, for example Inception or Breaking Bad."
+          },
+          "subjectId": {
+            "type": "string",
+            "description": "Numeric Reelix subject id from a search result. Required for details, resources, cast, and seasons."
+          },
+          "type": {
+            "type": "string",
+            "description": "movie or series. Helps pick the cast route. Optional."
+          },
+          "count": {
+            "type": "integer",
+            "description": "Search page size, 1 to 20. Default 8."
+          },
+          "page": {
+            "type": "integer",
+            "description": "Search or resources page number. Default 1."
+          }
+        },
+        "required": []
+      }
+    }
+  },
+  "options": {
+    "slow": true,
+    "reactBusy": "⏳",
+    "reactDone": "🍿"
+  }
+}
