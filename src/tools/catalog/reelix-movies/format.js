@@ -78,6 +78,16 @@ export function summarizeDetails(payload = {}, subjectId = '') {
   return summarizeSubject(subject, { subjectId: subjectId || payload.subjectId });
 }
 
+function resourceList(payload = {}) {
+  const resources = payload.resources && typeof payload.resources === 'object' ? payload.resources : {};
+  const list = Array.isArray(resources.list)
+    ? resources.list
+    : Array.isArray(resources.items)
+      ? resources.items
+      : [];
+  return { resources, list };
+}
+
 function stripPlayUrl(item = {}) {
   return {
     title: item.title || item.name || '',
@@ -88,16 +98,31 @@ function stripPlayUrl(item = {}) {
     size: item.size || '',
     sizeBytes: item.sizeBytes || 0,
     duration: item.duration || 0,
+    resourceId: item.resourceId || item.streamId || '',
   };
 }
 
+function downloadItem(item = {}) {
+  return {
+    title: item.title || item.name || '',
+    season: item.season ?? item.se ?? null,
+    episode: item.episode ?? item.ep ?? null,
+    quality: item.quality || '',
+    resolution: item.resolution || 0,
+    size: item.size || '',
+    sizeBytes: item.sizeBytes || 0,
+    duration: item.duration || 0,
+    resourceId: item.resourceId || item.streamId || '',
+    url: item.url || item.resourceLink || '',
+  };
+}
+
+function qualityKey(value) {
+  return String(value || '').trim().toLowerCase().replace(/p$/, '');
+}
+
 export function summarizeResources(payload = {}) {
-  const resources = payload.resources && typeof payload.resources === 'object' ? payload.resources : {};
-  const list = Array.isArray(resources.list)
-    ? resources.list
-    : Array.isArray(resources.items)
-      ? resources.items
-      : [];
+  const { resources, list } = resourceList(payload);
   return {
     subjectId: payload.subjectId || resources.subjectId || '',
     title: resources.subjectTitle || '',
@@ -110,6 +135,34 @@ export function summarizeResources(payload = {}) {
     bannerUrl: coverUrlOf(resources.cover) || coverUrlOf(resources.posterUrl),
     items: list.slice(0, 40).map(stripPlayUrl),
     total: list.length,
+  };
+}
+
+export function summarizeDownload(payload = {}, filter = {}) {
+  const { resources, list } = resourceList(payload);
+  const items = list.map(downloadItem).filter((item) => item.url);
+  const resourceId = String(filter.resourceId || '').trim();
+  const quality = qualityKey(filter.quality);
+  const resolution = Number.parseInt(filter.resolution, 10);
+
+  let matched = items;
+  if (resourceId) {
+    matched = items.filter((item) => String(item.resourceId) === resourceId);
+  } else if (Number.isFinite(resolution) && resolution > 0) {
+    matched = items.filter((item) => Number(item.resolution) === resolution);
+  } else if (quality) {
+    matched = items.filter((item) => {
+      const iq = qualityKey(item.quality);
+      return iq === quality || String(item.resolution) === quality;
+    });
+  }
+
+  return {
+    subjectId: payload.subjectId || resources.subjectId || '',
+    title: resources.subjectTitle || '',
+    items: matched,
+    total: items.length,
+    matched: matched.length,
   };
 }
 

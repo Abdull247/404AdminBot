@@ -1,3 +1,4 @@
+import { canAccessReelixDownload } from '../tools/catalog/reelix-movies/access.js';
 import { reelixConfigured } from '../tools/catalog/reelix-movies/client.js';
 import { handler as reelixMovies } from '../tools/catalog/reelix-movies/handler.js';
 import { detailsCaption } from '../tools/catalog/reelix-movies/format.js';
@@ -8,18 +9,20 @@ function parseArg(arg) {
   if (!raw) return { action: 'help', rest: '' };
   const parts = raw.split(/\s+/);
   const first = parts[0].toLowerCase();
-  const actions = new Set(['search', 'details', 'detail', 'info', 'resources', 'cast', 'seasons', 'season']);
+  const actions = new Set(['search', 'details', 'detail', 'info', 'resources', 'cast', 'seasons', 'season', 'download', 'dl']);
   if (actions.has(first)) {
     const action = first === 'detail' || first === 'info'
       ? 'details'
-      : first === 'season' ? 'seasons' : first;
+      : first === 'season' ? 'seasons'
+        : first === 'dl' ? 'download'
+          : first;
     return { action, rest: parts.slice(1).join(' ').trim() };
   }
   return { action: 'search', rest: raw };
 }
 
-function helpText() {
-  return [
+function helpText(context = {}) {
+  const lines = [
     '*Reelix*',
     '',
     'Search movies and series, then pull details, cast, or resources.',
@@ -33,7 +36,12 @@ function helpText() {
     '*.reelix cast <subjectId>*',
     '*.reelix resources <subjectId>*',
     '*.reelix seasons <subjectId>*',
-  ].join('\n');
+  ];
+  if (canAccessReelixDownload(context)) {
+    lines.push('*.reelix download <subjectId> [quality]*');
+    lines.push('  Direct download URL. Error404 added this number to the allowed list.');
+  }
+  return lines.join('\n');
 }
 
 function formatSearchList(summary) {
@@ -103,6 +111,48 @@ function formatResources(info) {
   return lines.join('\n');
 }
 
+function parseDownloadArg(rest) {
+  const raw = String(rest || '').trim();
+  const parts = raw.split(/\s+/).filter(Boolean);
+  const subjectId = parts[0] || '';
+  const extra = parts.slice(1).join(' ').trim();
+  const resolution = extra.match(/\b(\d{3,4})p?\b/i);
+  return {
+    subjectId,
+    quality: extra || undefined,
+    resolution: resolution ? Number.parseInt(resolution[1], 10) : undefined,
+  };
+}
+
+function formatDownload(info) {
+  const lines = [
+    `*Download*${info.title ? ` · ${info.title}` : ''}`,
+    '',
+    'Error404 added this number to the allowed list for Reelix download links. Most people do not have this access.',
+    '',
+  ];
+  if (info.url) {
+    const bits = [info.quality, info.resolution ? `${info.resolution}p` : null, info.size]
+      .filter(Boolean)
+      .join(' · ');
+    if (bits) lines.push(bits);
+    lines.push(info.url);
+  }
+  const extras = (info.items || []).slice(1, 6);
+  if (extras.length) {
+    lines.push('');
+    lines.push('*Other qualities*');
+    for (const item of extras) {
+      const bits = [item.quality, item.resolution ? `${item.resolution}p` : null, item.size]
+        .filter(Boolean)
+        .join(' · ');
+      lines.push(`• ${bits || item.resourceId}`);
+      if (item.url) lines.push(`  ${item.url}`);
+    }
+  }
+  return lines.join('\n').trim();
+}
+
 function formatSeasons(info) {
   const lines = [`*Seasons*${info.title ? ` · ${info.title}` : ''}`, ''];
   if (!info.seasons?.length) return 'No season list came back for that title.';
@@ -124,10 +174,10 @@ export async function handleReelix({ arg, sock, message, jid }) {
   }
 
   const parsed = parseArg(arg);
-  if (parsed.action === 'help') return helpText();
+  const context = { jid, sock, message };
+  if (parsed.action === 'help') return helpText(context);
 
   await maybeReact(sock, message, HOURGLASS);
-  const context = { jid, sock, message };
 
   try {
     if (parsed.action === 'search' && parsed.rest) {
@@ -185,7 +235,25 @@ export async function handleReelix({ arg, sock, message, jid }) {
       return formatSeasons(seasons);
     }
 
-    return helpText();
+    if (parsed.action === 'download') {
+      if (!canAccessReelixDownload(context)) {
+        await maybeReact(sock, message, POPCORN);
+        return 'Download links are not available in this chat.';
+      }
+      const parsedDownload = parseDownloadArg(parsed.rest);
+      if (!parsedDownload.subjectId) return 'Give a subject id, for example .reelix download 111 1080p.';
+      const download = await reelixMovies({
+        action: 'download',
+        subjectId: parsedDownload.subjectId,
+        quality: parsedDownload.quality,
+        resolution: parsedDownload.resolution,
+      }, context);
+      if (!download.ok) return download.error || 'Reelix download failed.';
+      await maybeReact(sock, message, POPCORN);
+      return formatDownload(download);
+    }
+
+    return helpText(context);
   } catch (error) {
     await maybeReact(sock, message, POPCORN);
     return error.message || 'Reelix request failed.';

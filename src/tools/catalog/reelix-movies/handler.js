@@ -4,16 +4,18 @@ import path from 'node:path';
 import { env } from '../../../config/env.js';
 import { logger } from '../../../utils/logger.js';
 import { downloadBuffer, reelixConfigured, reelixRequest } from './client.js';
+import { canAccessReelixDownload, DOWNLOAD_ALLOWED_NOTICE } from './access.js';
 import {
   detailsCaption,
   summarizeCast,
   summarizeDetails,
+  summarizeDownload,
   summarizeResources,
   summarizeSearch,
   summarizeSeasons,
 } from './format.js';
 
-const ACTIONS = new Set(['search', 'details', 'resources', 'cast', 'seasons']);
+const ACTIONS = new Set(['search', 'details', 'resources', 'cast', 'seasons', 'download']);
 
 function extensionFor(contentType) {
   const map = {
@@ -123,7 +125,63 @@ async function handleResources(args) {
     ok: true,
     action: 'resources',
     ...summarizeResources(result.data),
-    hint: 'Summarize availability, quality, and episode coverage. Do not invent playback links.',
+    hint: 'Summarize availability, quality, and episode coverage. Do not invent playback links. Do not mention download URLs.',
+  };
+}
+
+function downloadDenied() {
+  return {
+    ok: false,
+    action: 'download',
+    error: 'Download links are not available in this chat.',
+  };
+}
+
+async function handleDownload(args, context) {
+  if (!canAccessReelixDownload(context)) return downloadDenied();
+  const subjectId = cleanSubjectId(args.subjectId);
+  const result = await reelixRequest({
+    path: `/bot/api/subjects/${subjectId}/resources`,
+    query: {
+      page: clampCount(args.page, 1),
+      perPage: clampCount(args.perPage, 20),
+      se: args.season,
+      resolution: args.resolution,
+    },
+  });
+  if (!result.ok) return result;
+  const summary = summarizeDownload(result.data, {
+    resourceId: args.resourceId,
+    quality: args.quality,
+    resolution: args.resolution,
+  });
+  if (!summary.items.length) {
+    return {
+      ok: false,
+      action: 'download',
+      error: 'No matching download URL came back for that title or quality.',
+      subjectId,
+      title: summary.title,
+      total: summary.total,
+    };
+  }
+  const picked = summary.items[0];
+  return {
+    ok: true,
+    action: 'download',
+    allowed: true,
+    notice: DOWNLOAD_ALLOWED_NOTICE,
+    subjectId: summary.subjectId,
+    title: summary.title,
+    url: picked.url,
+    quality: picked.quality,
+    resolution: picked.resolution,
+    resourceId: picked.resourceId,
+    size: picked.size,
+    season: picked.season,
+    episode: picked.episode,
+    items: summary.items.slice(0, 8),
+    hint: 'Tell the user Error404 added their number to the allowed list for Reelix download links. Share the direct URL. Most people do not have this access.',
   };
 }
 
@@ -172,13 +230,14 @@ export async function handler(args = {}, context = {}) {
 
   const action = String(args.action || 'search').trim().toLowerCase();
   if (!ACTIONS.has(action)) {
-    return { ok: false, error: `unknown action "${action}". Use search, details, resources, cast, or seasons.` };
+    return { ok: false, error: `unknown action "${action}". Use search, details, resources, cast, seasons, or download.` };
   }
 
   try {
     if (action === 'search') return await handleSearch(args);
     if (action === 'details') return await handleDetails(args, context);
     if (action === 'resources') return await handleResources(args);
+    if (action === 'download') return await handleDownload(args, context);
     if (action === 'cast') return await handleCast(args);
     if (action === 'seasons') return await handleSeasons(args);
     return { ok: false, error: `unknown action "${action}"` };

@@ -4,7 +4,7 @@
     "type": "function",
     "function": {
       "name": "reelix_movies",
-      "description": "Look up movies and TV series on Reelix. Use this when the user asks to search for a title, wants details about a movie or series, asks who is in the cast, or wants availability/resources. Start with action=search (returns structured JSON). Then call action=details with the subjectId for a specific title: that sends the banner image and returns name, rating, type, genre, and description for a recap. Use action=cast, action=resources, or action=seasons only after you have a subjectId. Never invent titles that were not returned.",
+      "description": "Look up movies and TV series on Reelix. Use this when the user asks to search for a title, wants details about a movie or series, asks who is in the cast, or wants availability/resources. Start with action=search (returns structured JSON). Then call action=details with the subjectId for a specific title: that sends the banner image and returns name, rating, type, genre, and description for a recap. Use action=cast, action=resources, or action=seasons only after you have a subjectId. Never invent titles that were not returned. Do not mention or invent download links.",
       "parameters": {
         "type": "object",
         "properties": {

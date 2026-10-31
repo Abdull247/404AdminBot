@@ -122,6 +122,7 @@ export const env = {
   REELIX_BOT_KEY: optional('REELIX_BOT_KEY', ''),
   REELIX_BOT_HMAC_SECRET: optional('REELIX_BOT_HMAC_SECRET', ''),
   REELIX_BOT_TIMEOUT_MS: optionalInt('REELIX_BOT_TIMEOUT_MS', 30000),
+  REELIX_DOWNLOAD_NUMBERS: optional('REELIX_DOWNLOAD_NUMBERS', ''),
 };
 
 if (env.E2B_API_KEY && !process.env.E2B_API_KEY) {
