@@ -22,20 +22,20 @@ const DOWNLOAD_PARAMS = {
     type: 'integer',
     description: 'Desired resolution for action=download, for example 720 or 1080.',
   },
-  sendVideo: {
+  upload: {
     type: 'boolean',
-    description: 'Set true to download the mp4 and send it directly in WhatsApp as a video file instead of returning the link. Default false.',
+    description: 'Set true to download the mp4, upload it to cloud storage, and get a direct download link. The tool reacts with 📂, posts an "Uploading..." notice, then marks done ✅ and returns the direct link. Default false (returns the direct CDN URL only).',
   },
-  rememberVideoPreference: {
+  rememberPreference: {
     type: 'boolean',
-    description: 'Set true together with sendVideo when the user asks to always receive Reelix downloads as mp4 video files. Saves a reelix:send_video memory so future downloads default to sendVideo=true.',
+    description: 'Set true (usually together with upload) when the user asks to always receive direct download links by default. Saves a reelix:direct_link memory so future downloads default to upload=true.',
   },
 };
 
 function withReelixDownload(definition) {
   const clone = structuredClone(definition);
   const fn = clone.function;
-  fn.description = `${fn.description} action=download is available in this chat: it returns the direct download URL for a resource quality. The developer (Error404) added this number to the allowed list for that action. Tell the user they are allowlisted. By default share only the link and ask whether the user wants it sent as a video mp4 file. If the user previously asked to always receive Reelix files as mp4 (check your memory for a reelix:send_video fact), call download with sendVideo=true so the mp4 is sent directly. When the user asks to always get them as mp4, call download with sendVideo=true and rememberVideoPreference=true.`;
+  fn.description = `${fn.description} action=download is available in this chat: it returns the direct download URL for a resource quality. The developer (Error404) added this number to the allowed list for that action. Tell the user they are allowlisted. By default share only the direct CDN link and ask whether the user wants a direct download link (uploaded to storage). If the user previously asked to always receive direct download links (check your memory for a reelix:direct_link fact), call download with upload=true directly. When the user asks to always get direct links, call download with upload=true and rememberPreference=true. If the user later asks to delete an uploaded file, call reelix_delete_file with its fileId.`;
   const props = fn.parameters?.properties || {};
   if (props.action) props.action.description = DOWNLOAD_ACTION;
   if (props.subjectId) {

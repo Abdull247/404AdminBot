@@ -64,6 +64,19 @@ export async function uploadR2Object({ key, body, contentType }) {
   return { key, url: r2PublicUrl(key) };
 }
 
+export async function uploadR2ObjectStream({ key, stream, contentType, size }) {
+  const s3 = getClient();
+  await s3.send(new PutObjectCommand({
+    Bucket: env.R2_BUCKET_NAME,
+    Key: key,
+    Body: stream,
+    ContentType: contentType || 'application/octet-stream',
+    ContentLength: size || undefined,
+  }));
+  logger.info({ key, bytes: size || null }, 'uploaded object stream to R2');
+  return { key, url: r2PublicUrl(key) };
+}
+
 export async function presignR2Url(key, ttlSeconds = 3600) {
   const s3 = getClient();
   return getSignedUrl(s3, new GetObjectCommand({ Bucket: env.R2_BUCKET_NAME, Key: key }), {

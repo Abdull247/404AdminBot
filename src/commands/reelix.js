@@ -1,7 +1,10 @@
-import { canAccessReelixDownload } from '../tools/catalog/reelix-movies/access.js';
+import { canAccessReelixDownload, isReelixAdmin } from '../tools/catalog/reelix-movies/access.js';
 import { reelixConfigured } from '../tools/catalog/reelix-movies/client.js';
 import { handler as reelixMovies } from '../tools/catalog/reelix-movies/handler.js';
 import { detailsCaption } from '../tools/catalog/reelix-movies/format.js';
+import { deleteFilesForAdmin, listFilesForAdmin } from '../db/repositories/files.js';
+import { deleteR2Object } from '../storage/r2.js';
+import { phoneFromJid } from '../whatsapp/phone.js';
 import { HOURGLASS, POPCORN, reactToMessage } from '../whatsapp/react.js';
 
 function parseArg(arg) {
@@ -9,13 +12,14 @@ function parseArg(arg) {
   if (!raw) return { action: 'help', rest: '' };
   const parts = raw.split(/\s+/);
   const first = parts[0].toLowerCase();
-  const actions = new Set(['search', 'details', 'detail', 'info', 'resources', 'cast', 'seasons', 'season', 'download', 'dl']);
+  const actions = new Set(['search', 'details', 'detail', 'info', 'resources', 'cast', 'seasons', 'season', 'download', 'dl', 'files', 'list', 'clear']);
   if (actions.has(first)) {
     const action = first === 'detail' || first === 'info'
       ? 'details'
       : first === 'season' ? 'seasons'
         : first === 'dl' ? 'download'
-          : first;
+          : first === 'list' ? 'files'
+            : first;
     return { action, rest: parts.slice(1).join(' ').trim() };
   }
   return { action: 'search', rest: raw };
@@ -40,10 +44,12 @@ function helpText(context = {}) {
   if (canAccessReelixDownload(context)) {
     lines.push('*.reelix download <subjectId> [quality]*');
     lines.push('  Direct download URL. Error404 added this number to the allowed list.');
-    lines.push('*.reelix download <subjectId> --video [quality]*');
-    lines.push('  Download and send the mp4 as a video file.');
-    lines.push('*.reelix download <subjectId> --video --always*');
-    lines.push('  Same, and remember to always send Reelix files as mp4.');
+  }
+  if (isReelixAdmin(context)) {
+    lines.push('*.reelix files*');
+    lines.push('  List every uploaded Reelix file stored on the bot (admin only).');
+    lines.push('*.reelix clear <vids|images|docs|all>*');
+    lines.push('  Delete uploaded files by category (admin only).');
   }
   return lines.join('\n');
 }
@@ -126,8 +132,6 @@ function parseDownloadArg(rest) {
     subjectId,
     quality: extra || undefined,
     resolution: resolution ? Number.parseInt(resolution[1], 10) : undefined,
-    sendVideo: parts.includes('--video'),
-    always: parts.includes('--always'),
   };
 }
 
@@ -173,6 +177,65 @@ function formatSeasons(info) {
 async function maybeReact(sock, message, emoji) {
   if (!sock || !message) return;
   await reactToMessage(sock, message, emoji);
+}
+
+function formatBytes(bytes) {
+  const value = Number(bytes) || 0;
+  if (value >= 1073741824) return `${(value / 1073741824).toFixed(1)} GB`;
+  if (value >= 1048576) return `${(value / 1048576).toFixed(1)} MB`;
+  if (value >= 1024) return `${(value / 1024).toFixed(1)} KB`;
+  return `${value} B`;
+}
+
+function shortenId(id, limit = 8) {
+  return String(id || '').slice(0, limit);
+}
+
+async function handleListFiles(context) {
+  if (!isReelixAdmin(context)) {
+    return 'Only Reelix admins can list stored files.';
+  }
+  const records = await listFilesForAdmin({ limit: 30 });
+  if (!records.length) return 'No uploaded files are currently stored.';
+  const lines = [`*Reelix stored files* · ${records.length} shown`, ''];
+  records.forEach((record, index) => {
+    const owner = phoneFromJid(record.jid) || 'unknown';
+    const size = formatBytes(record.size);
+    const when = String(record.created_at || '').slice(0, 16).replace('T', ' ');
+    lines.push(`${index + 1}. ${record.filename}`);
+    lines.push(`   ${size} · ${owner} · ${when} · id ${shortenId(record.id)}`);
+  });
+  return lines.join('\n');
+}
+
+const CLEAR_CATEGORIES = {
+  vids: { label: 'video', mimetypePrefix: 'video/' },
+  videos: { label: 'video', mimetypePrefix: 'video/' },
+  video: { label: 'video', mimetypePrefix: 'video/' },
+  images: { label: 'image', mimetypePrefix: 'image/' },
+  image: { label: 'image', mimetypePrefix: 'image/' },
+  pics: { label: 'image', mimetypePrefix: 'image/' },
+  docs: { label: 'document', excludePrefixes: ['video/', 'image/'] },
+  documents: { label: 'document', excludePrefixes: ['video/', 'image/'] },
+  all: { label: 'stored' },
+};
+
+async function handleClearFiles(context, rest) {
+  if (!isReelixAdmin(context)) {
+    return 'Only Reelix admins can clear stored files.';
+  }
+  const category = String(rest || '').trim().toLowerCase();
+  const spec = CLEAR_CATEGORIES[category];
+  if (!spec) {
+    return 'Specify a category to clear: vids, images, docs, or all. Example: .reelix clear vids';
+  }
+  const records = await listFilesForAdmin({ ...spec, limit: 1000 });
+  if (!records.length) return `No ${spec.label} files to clear.`;
+  const results = await Promise.allSettled(records.map((record) => deleteR2Object(record.key)));
+  const failed = results.filter((result) => result.status === 'rejected').length;
+  const deleted = await deleteFilesForAdmin(records.map((record) => record.id));
+  const note = failed ? ` (${failed} storage object${failed === 1 ? '' : 's'} left behind)` : '';
+  return `Cleared ${deleted} ${spec.label} file${deleted === 1 ? '' : 's'} from storage${note}.`;
 }
 
 export async function handleReelix({ arg, sock, message, jid }) {
@@ -242,6 +305,14 @@ export async function handleReelix({ arg, sock, message, jid }) {
       return formatSeasons(seasons);
     }
 
+    if (parsed.action === 'files') {
+      return await handleListFiles(context);
+    }
+
+    if (parsed.action === 'clear') {
+      return await handleClearFiles(context, parsed.rest);
+    }
+
     if (parsed.action === 'download') {
       if (!canAccessReelixDownload(context)) {
         await maybeReact(sock, message, POPCORN);
@@ -254,21 +325,9 @@ export async function handleReelix({ arg, sock, message, jid }) {
         subjectId: parsedDownload.subjectId,
         quality: parsedDownload.quality,
         resolution: parsedDownload.resolution,
-        sendVideo: parsedDownload.sendVideo,
-        rememberVideoPreference: parsedDownload.always,
       }, context);
       if (!download.ok) return download.error || 'Reelix download failed.';
       await maybeReact(sock, message, POPCORN);
-      if (download.sentAsVideo) {
-        const bits = [download.title, download.quality, download.size].filter(Boolean).join(' · ');
-        return {
-          text: ['*Video sent*', bits ? `  ${bits}` : '', download.videoFile ? `  ${download.videoFile.filename}` : ''].filter(Boolean).join('\n'),
-          artifacts: download.files || [],
-        };
-      }
-      if (download.videoError) {
-        return `${formatDownload(download)}\n\nCould not send the video (${download.videoError}).`;
-      }
       return formatDownload(download);
     }
 

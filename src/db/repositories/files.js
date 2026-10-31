@@ -56,3 +56,29 @@ export async function deleteStoredFile(id, jid) {
   `;
   return rows[0] ?? null;
 }
+
+export async function listFilesForAdmin({ mimetypePrefix = null, excludePrefixes = [], limit = 1000 } = {}) {
+  const parts = [];
+  const params = [];
+  if (mimetypePrefix) {
+    parts.push(`mimetype LIKE $${params.length + 1}`);
+    params.push(`${mimetypePrefix}%`);
+  }
+  for (const prefix of excludePrefixes) {
+    parts.push(`mimetype NOT LIKE $${params.length + 1}`);
+    params.push(`${prefix}%`);
+  }
+  const where = parts.length ? `WHERE ${parts.join(' AND ')}` : '';
+  const query = `SELECT * FROM stored_files ${where} ORDER BY created_at DESC LIMIT ${Math.min(limit, 5000)}`;
+  return sql(query, params);
+}
+
+export async function deleteFilesForAdmin(ids) {
+  if (!Array.isArray(ids) || !ids.length) return 0;
+  const rows = await sql`
+    DELETE FROM stored_files
+    WHERE id = ANY(${ids})
+    RETURNING id
+  `;
+  return rows.length;
+}

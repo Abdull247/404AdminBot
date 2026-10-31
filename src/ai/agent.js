@@ -204,6 +204,11 @@ export async function generateReply({
         expressiveReaction = emoji;
       }
     },
+    setDoneReaction(emoji) {
+      if (emoji) {
+        doneReaction = emoji;
+      }
+    },
   };
 
   try {

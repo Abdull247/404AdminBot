@@ -4,6 +4,8 @@ export const HOURGLASS = '\u231B';
 export const CHECK = '\u2705';
 export const IMAGE_DONE = '\u{1F5BC}\uFE0F';
 export const POPCORN = '\u{1F37F}';
+export const FOLDER = '\u{1F4C2}';
+export const CROSS = '\u274C';
 
 export const BUSY_REACTIONS = new Set([HOURGLASS, CHECK, POPCORN]);
 

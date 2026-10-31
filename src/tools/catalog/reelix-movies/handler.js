@@ -3,7 +3,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { env } from '../../../config/env.js';
 import { upsertMemory } from '../../../db/repositories/memories.js';
+import { createStoredFile } from '../../../db/repositories/files.js';
+import { makeObjectKey, sanitizeName, uploadR2ObjectStream } from '../../../storage/r2.js';
 import { logger } from '../../../utils/logger.js';
+import { CHECK, CROSS, FOLDER, reactToMessage } from '../../../whatsapp/react.js';
 import { downloadBuffer, downloadReelixVideo, reelixConfigured, reelixRequest } from './client.js';
 import { canAccessReelixDownload, DOWNLOAD_ALLOWED_NOTICE } from './access.js';
 import {
@@ -17,6 +20,8 @@ import {
 } from './format.js';
 
 const ACTIONS = new Set(['search', 'details', 'resources', 'cast', 'seasons', 'download']);
+
+const DIRECT_LINK_MEMORY_KEY = 'reelix:direct_link';
 
 function extensionFor(contentType) {
   const map = {
@@ -185,11 +190,11 @@ async function handleDownload(args, context) {
     files: [],
   };
 
-  if (args.rememberVideoPreference) {
+  if (args.rememberPreference) {
     try {
       await upsertMemory({
         jid: context.jid,
-        key: 'reelix:send_video',
+        key: DIRECT_LINK_MEMORY_KEY,
         value: 'true',
         importance: 5,
         metadata: {
@@ -201,46 +206,109 @@ async function handleDownload(args, context) {
       });
       base.preferenceSaved = true;
     } catch (error) {
-      logger.warn({ err: error, jid: context.jid }, 'failed to save Reelix video preference');
+      logger.warn({ err: error, jid: context.jid }, 'failed to save Reelix direct-link preference');
     }
   }
 
-  if (args.sendVideo) {
-    const file = await downloadReelixVideo(picked.url, {
-      jid: context.jid,
-      title: summary.title,
-      cookie: picked.signCookie || '',
-    });
-    if (file.ok) {
-      return {
-        ...base,
-        sentAsVideo: true,
-        videoFile: { filename: file.filename, size: file.size },
-        files: [{
-          ok: true,
-          filename: file.filename,
-          path: file.filePath,
-          mimetype: file.contentType,
-          size: file.size,
-          attachment: true,
-          caption: summary.title || file.filename,
-        }],
-        hint: base.preferenceSaved
-          ? 'The mp4 has been attached and will be sent directly. The user preference to always receive Reelix videos as mp4 has been saved. Keep the reply short.'
-          : 'The mp4 has been attached and will be sent directly to the user in WhatsApp. Keep the reply short.',
-      };
-    }
-    return {
-      ...base,
-      sentAsVideo: false,
-      videoError: file.error,
-      hint: `The video file could not be sent (${file.error}). Share the direct URL instead and tell the user.`,
-    };
+  if (args.upload) {
+    return uploadAsDirectLink({ context, subjectId, summary, picked, base });
   }
 
   return {
     ...base,
-    hint: 'Share only the direct download URL by default, then ask whether the user wants it sent as a video mp4 file. If they say yes, call download again with sendVideo=true. If they want it always sent as mp4, call with sendVideo=true and rememberVideoPreference=true.',
+    hint: 'Share only the direct CDN URL by default, then ask whether the user wants a direct download link (the file uploaded to storage). If they say yes, call download again with upload=true. If they want direct links by default, call download with upload=true and rememberPreference=true (or check memory for a reelix:direct_link fact). If the user later asks to delete an uploaded file, call reelix_delete_file with its fileId.',
+  };
+}
+
+async function uploadAsDirectLink({ context, subjectId, summary, picked, base }) {
+  const { sock, message, jid } = context;
+  if (sock && message) {
+    reactToMessage(sock, message, FOLDER).catch(() => {});
+  }
+
+  const displayName = [summary.title, picked.quality].filter(Boolean).join(' - ');
+  const guessedExt = String(picked.url || '').match(/\.([a-z0-9]{2,4})(?:$|[?#])/i)?.[1] || 'mp4';
+
+  if (sock && jid) {
+    sock.sendMessage(jid, {
+      text: `Uploading '${displayName}'.${guessedExt} file for direct download link...`,
+    }).catch((error) => {
+      logger.warn({ err: error, jid }, 'failed to send Reelix uploading notice');
+    });
+  }
+
+  const file = await downloadReelixVideo(picked.url, {
+    jid,
+    title: summary.title,
+    cookie: picked.signCookie || '',
+  });
+  if (!file.ok) {
+    context.setDoneReaction?.(CROSS);
+    return {
+      ...base,
+      uploaded: false,
+      videoError: file.error,
+      hint: `The file could not be downloaded (${file.error}). Share the direct CDN URL instead.`,
+    };
+  }
+
+  const ext = String(file.filename).split('.').pop() || guessedExt;
+  const filename = `${sanitizeName(displayName)}.${ext}`;
+
+  let uploaded = null;
+  let record = null;
+  try {
+    const key = makeObjectKey(jid, filename);
+    uploaded = await uploadR2ObjectStream({
+      key,
+      stream: fs.createReadStream(file.filePath),
+      contentType: file.contentType || 'video/mp4',
+      size: file.size,
+    });
+    record = await createStoredFile({
+      id: crypto.randomUUID(),
+      jid,
+      chatType: 'dm',
+      filename,
+      key,
+      url: uploaded.url,
+      mimetype: file.contentType || 'video/mp4',
+      size: file.size,
+      source: 'reelix',
+      metadata: {
+        category: 'video',
+        subjectId,
+        title: summary.title,
+        quality: picked.quality,
+        resolution: picked.resolution,
+        season: picked.season,
+        episode: picked.episode,
+        resourceId: picked.resourceId,
+      },
+    });
+  } catch (error) {
+    logger.error({ err: error, jid }, 'reelix upload failed');
+    try { fs.unlinkSync(file.filePath); } catch { /* temp already gone */ }
+    context.setDoneReaction?.(CROSS);
+    return {
+      ...base,
+      uploaded: false,
+      videoError: error.message,
+      hint: `The file could not be uploaded (${error.message}). Share the direct CDN URL instead.`,
+    };
+  }
+
+  try { fs.unlinkSync(file.filePath); } catch { /* temp already gone */ }
+
+  context.setDoneReaction?.(CHECK);
+  return {
+    ...base,
+    uploaded: true,
+    directUrl: uploaded.url,
+    fileId: record?.id || null,
+    filename,
+    size: file.size,
+    hint: 'The file has been uploaded and a direct download link is ready. Give the user the direct download link (directUrl) for the file.',
   };
 }
 
