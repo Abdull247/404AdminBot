@@ -2,8 +2,9 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { env } from '../../../config/env.js';
+import { upsertMemory } from '../../../db/repositories/memories.js';
 import { logger } from '../../../utils/logger.js';
-import { downloadBuffer, reelixConfigured, reelixRequest } from './client.js';
+import { downloadBuffer, downloadReelixVideo, reelixConfigured, reelixRequest } from './client.js';
 import { canAccessReelixDownload, DOWNLOAD_ALLOWED_NOTICE } from './access.js';
 import {
   detailsCaption,
@@ -166,7 +167,7 @@ async function handleDownload(args, context) {
     };
   }
   const picked = summary.items[0];
-  return {
+  const base = {
     ok: true,
     action: 'download',
     allowed: true,
@@ -181,7 +182,64 @@ async function handleDownload(args, context) {
     season: picked.season,
     episode: picked.episode,
     items: summary.items.slice(0, 8),
-    hint: 'Tell the user Error404 added their number to the allowed list for Reelix download links. Share the direct URL. Most people do not have this access.',
+    files: [],
+  };
+
+  if (args.rememberVideoPreference) {
+    try {
+      await upsertMemory({
+        jid: context.jid,
+        key: 'reelix:send_video',
+        value: 'true',
+        importance: 5,
+        metadata: {
+          subjectId,
+          title: summary.title,
+          resourceId: picked.resourceId,
+          savedAt: new Date().toISOString(),
+        },
+      });
+      base.preferenceSaved = true;
+    } catch (error) {
+      logger.warn({ err: error, jid: context.jid }, 'failed to save Reelix video preference');
+    }
+  }
+
+  if (args.sendVideo) {
+    const file = await downloadReelixVideo(picked.url, {
+      jid: context.jid,
+      title: summary.title,
+    });
+    if (file.ok) {
+      return {
+        ...base,
+        sentAsVideo: true,
+        videoFile: { filename: file.filename, size: file.size },
+        files: [{
+          ok: true,
+          filename: file.filename,
+          path: file.filePath,
+          mimetype: file.contentType,
+          size: file.size,
+          attachment: true,
+          caption: summary.title || file.filename,
+        }],
+        hint: base.preferenceSaved
+          ? 'The mp4 has been attached and will be sent directly. The user preference to always receive Reelix videos as mp4 has been saved. Keep the reply short.'
+          : 'The mp4 has been attached and will be sent directly to the user in WhatsApp. Keep the reply short.',
+      };
+    }
+    return {
+      ...base,
+      sentAsVideo: false,
+      videoError: file.error,
+      hint: `The video file could not be sent (${file.error}). Share the direct URL instead and tell the user.`,
+    };
+  }
+
+  return {
+    ...base,
+    hint: 'Share only the direct download URL by default, then ask whether the user wants it sent as a video mp4 file. If they say yes, call download again with sendVideo=true. If they want it always sent as mp4, call with sendVideo=true and rememberVideoPreference=true.',
   };
 }
 

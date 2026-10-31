@@ -22,12 +22,20 @@ const DOWNLOAD_PARAMS = {
     type: 'integer',
     description: 'Desired resolution for action=download, for example 720 or 1080.',
   },
+  sendVideo: {
+    type: 'boolean',
+    description: 'Set true to download the mp4 and send it directly in WhatsApp as a video file instead of returning the link. Default false.',
+  },
+  rememberVideoPreference: {
+    type: 'boolean',
+    description: 'Set true together with sendVideo when the user asks to always receive Reelix downloads as mp4 video files. Saves a reelix:send_video memory so future downloads default to sendVideo=true.',
+  },
 };
 
 function withReelixDownload(definition) {
   const clone = structuredClone(definition);
   const fn = clone.function;
-  fn.description = `${fn.description} action=download is available in this chat: it returns the direct download URL for a resource quality. The developer (Error404) added this number to the allowed list for that action. Tell the user they are allowlisted.`;
+  fn.description = `${fn.description} action=download is available in this chat: it returns the direct download URL for a resource quality. The developer (Error404) added this number to the allowed list for that action. Tell the user they are allowlisted. By default share only the link and ask whether the user wants it sent as a video mp4 file. If the user previously asked to always receive Reelix files as mp4 (check your memory for a reelix:send_video fact), call download with sendVideo=true so the mp4 is sent directly. When the user asks to always get them as mp4, call download with sendVideo=true and rememberVideoPreference=true.`;
   const props = fn.parameters?.properties || {};
   if (props.action) props.action.description = DOWNLOAD_ACTION;
   if (props.subjectId) {

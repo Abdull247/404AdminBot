@@ -1,8 +1,22 @@
 import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
+import { Readable, Transform } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 import { env } from '../../../config/env.js';
 
 const HMAC_VERSION = 'v1';
 const NONCE_MIN_LEN = 16;
+
+const DEFAULT_VIDEO_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
+
+const VIDEO_MIME_EXT = {
+  'video/mp4': 'mp4',
+  'video/quicktime': 'mov',
+  'video/webm': 'webm',
+  'video/x-matroska': 'mkv',
+  'video/x-msvideo': 'avi',
+};
 
 function trimSlash(value) {
   return String(value || '').replace(/\/+$/, '');
@@ -122,4 +136,100 @@ export async function downloadBuffer(url, timeoutMs = env.REELIX_BOT_TIMEOUT_MS)
   } finally {
     clearTimeout(timeout);
   }
+}
+
+function videoExtension(contentType, url) {
+  const mime = String(contentType || '').split(';')[0].trim().toLowerCase();
+  const fromMime = VIDEO_MIME_EXT[mime];
+  if (fromMime) return fromMime;
+  const match = String(url || '').match(/\.([a-z0-9]{2,4})(?:$|[?#])/i);
+  if (match) return match[1].toLowerCase();
+  return 'mp4';
+}
+
+function safeJid(jid) {
+  return String(jid || 'unknown').replace(/[^a-zA-Z0-9._-]/g, '_');
+}
+
+export async function downloadReelixVideo(url, { jid = '', title = '' } = {}) {
+  const maxBytes = Math.max(1, env.REELIX_VIDEO_MAX_MB || 90) * 1024 * 1024;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), env.REELIX_VIDEO_TIMEOUT_MS || 300000);
+  const headers = {
+    'user-agent': env.REELIX_VIDEO_USER_AGENT || DEFAULT_VIDEO_USER_AGENT,
+    accept: 'video/webm,video/mp4,video/x-matroska,video/*;q=0.9,*/*;q=0.8',
+    'accept-language': 'en-US,en;q=0.9',
+    referer: env.REELIX_VIDEO_REFERER || 'https://reelix.hakunaymatata.com/',
+  };
+
+  let response;
+  try {
+    response = await fetch(url, { signal: controller.signal, headers, redirect: 'follow' });
+  } catch (error) {
+    return {
+      ok: false,
+      error: error.name === 'AbortError'
+        ? 'video download timed out'
+        : `video download failed: ${error.message}`,
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+
+  if (!response.ok || !response.body) {
+    return { ok: false, error: `video download failed with status ${response.status || 'no body'}` };
+  }
+
+  const declared = Number(response.headers.get('content-length')) || 0;
+  if (declared > maxBytes) {
+    return {
+      ok: false,
+      error: `video is too large (${Math.round(declared / 1048576)}MB) to send in WhatsApp`,
+    };
+  }
+
+  const contentType = String(response.headers.get('content-type') || '').split(';')[0].trim() || 'video/mp4';
+  const dir = path.join(env.TOOLS_OUTPUT_DIR, safeJid(jid), 'reelix');
+  fs.mkdirSync(dir, { recursive: true });
+  const ext = videoExtension(contentType, url);
+  const filename = `reelix-video-${Date.now()}-${crypto.randomBytes(3).toString('hex')}.${ext}`;
+  const filePath = path.join(dir, filename);
+
+  let size = 0;
+  const counter = new Transform({
+    transform(chunk, _enc, callback) {
+      size += chunk.length;
+      if (size > maxBytes) {
+        callback(new Error(`video exceeds the ${env.REELIX_VIDEO_MAX_MB || 90}MB send limit`));
+        return;
+      }
+      callback(null, chunk);
+    },
+  });
+
+  try {
+    await pipeline(Readable.fromWeb(response.body), counter, fs.createWriteStream(filePath, { flags: 'w' }));
+  } catch (error) {
+    try { fs.unlinkSync(filePath); } catch { /* ignore */ }
+    return {
+      ok: false,
+      error: error.name === 'AbortError'
+        ? 'video download timed out'
+        : `video download failed: ${error.message}`,
+    };
+  }
+
+  if (!size) {
+    try { fs.unlinkSync(filePath); } catch { /* ignore */ }
+    return { ok: false, error: 'video download returned an empty file' };
+  }
+
+  return {
+    ok: true,
+    filePath,
+    filename,
+    contentType,
+    size,
+    title,
+  };
 }

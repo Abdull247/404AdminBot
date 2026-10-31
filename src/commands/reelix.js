@@ -40,6 +40,10 @@ function helpText(context = {}) {
   if (canAccessReelixDownload(context)) {
     lines.push('*.reelix download <subjectId> [quality]*');
     lines.push('  Direct download URL. Error404 added this number to the allowed list.');
+    lines.push('*.reelix download <subjectId> --video [quality]*');
+    lines.push('  Download and send the mp4 as a video file.');
+    lines.push('*.reelix download <subjectId> --video --always*');
+    lines.push('  Same, and remember to always send Reelix files as mp4.');
   }
   return lines.join('\n');
 }
@@ -114,13 +118,16 @@ function formatResources(info) {
 function parseDownloadArg(rest) {
   const raw = String(rest || '').trim();
   const parts = raw.split(/\s+/).filter(Boolean);
-  const subjectId = parts[0] || '';
-  const extra = parts.slice(1).join(' ').trim();
+  const positional = parts.filter((part) => !part.startsWith('--'));
+  const subjectId = positional[0] || '';
+  const extra = positional.slice(1).join(' ').trim();
   const resolution = extra.match(/\b(\d{3,4})p?\b/i);
   return {
     subjectId,
     quality: extra || undefined,
     resolution: resolution ? Number.parseInt(resolution[1], 10) : undefined,
+    sendVideo: parts.includes('--video'),
+    always: parts.includes('--always'),
   };
 }
 
@@ -247,9 +254,21 @@ export async function handleReelix({ arg, sock, message, jid }) {
         subjectId: parsedDownload.subjectId,
         quality: parsedDownload.quality,
         resolution: parsedDownload.resolution,
+        sendVideo: parsedDownload.sendVideo,
+        rememberVideoPreference: parsedDownload.always,
       }, context);
       if (!download.ok) return download.error || 'Reelix download failed.';
       await maybeReact(sock, message, POPCORN);
+      if (download.sentAsVideo) {
+        const bits = [download.title, download.quality, download.size].filter(Boolean).join(' · ');
+        return {
+          text: ['*Video sent*', bits ? `  ${bits}` : '', download.videoFile ? `  ${download.videoFile.filename}` : ''].filter(Boolean).join('\n'),
+          artifacts: download.files || [],
+        };
+      }
+      if (download.videoError) {
+        return `${formatDownload(download)}\n\nCould not send the video (${download.videoError}).`;
+      }
       return formatDownload(download);
     }
 
