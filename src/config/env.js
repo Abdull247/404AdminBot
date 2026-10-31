@@ -125,7 +125,7 @@ export const env = {
   REELIX_DOWNLOAD_NUMBERS: optional('REELIX_DOWNLOAD_NUMBERS', ''),
   REELIX_VIDEO_MAX_MB: optionalInt('REELIX_VIDEO_MAX_MB', 90),
   REELIX_VIDEO_TIMEOUT_MS: optionalIntWithDefaultMs('REELIX_VIDEO_TIMEOUT_MS', 300000),
-  REELIX_VIDEO_REFERER: optional('REELIX_VIDEO_REFERER', 'https://reelix.hakunaymatata.com/'),
+  REELIX_VIDEO_REFERER: optional('REELIX_VIDEO_REFERER', ''),
   REELIX_VIDEO_USER_AGENT: optional('REELIX_VIDEO_USER_AGENT', ''),
 };
 

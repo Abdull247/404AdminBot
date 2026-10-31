@@ -8,7 +8,7 @@ import { env } from '../../../config/env.js';
 const HMAC_VERSION = 'v1';
 const NONCE_MIN_LEN = 16;
 
-const DEFAULT_VIDEO_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
+const DEFAULT_VIDEO_USER_AGENT = 'ReelixMovies/1.0 (Android)';
 
 const VIDEO_MIME_EXT = {
   'video/mp4': 'mp4',
@@ -151,7 +151,7 @@ function safeJid(jid) {
   return String(jid || 'unknown').replace(/[^a-zA-Z0-9._-]/g, '_');
 }
 
-export async function downloadReelixVideo(url, { jid = '', title = '' } = {}) {
+export async function downloadReelixVideo(url, { jid = '', title = '', cookie = '' } = {}) {
   const maxBytes = Math.max(1, env.REELIX_VIDEO_MAX_MB || 90) * 1024 * 1024;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), env.REELIX_VIDEO_TIMEOUT_MS || 300000);
@@ -159,8 +159,9 @@ export async function downloadReelixVideo(url, { jid = '', title = '' } = {}) {
     'user-agent': env.REELIX_VIDEO_USER_AGENT || DEFAULT_VIDEO_USER_AGENT,
     accept: 'video/webm,video/mp4,video/x-matroska,video/*;q=0.9,*/*;q=0.8',
     'accept-language': 'en-US,en;q=0.9',
-    referer: env.REELIX_VIDEO_REFERER || 'https://reelix.hakunaymatata.com/',
   };
+  if (env.REELIX_VIDEO_REFERER) headers.referer = env.REELIX_VIDEO_REFERER;
+  if (cookie) headers.cookie = cookie;
 
   let response;
   try {

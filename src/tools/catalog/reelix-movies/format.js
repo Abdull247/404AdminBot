@@ -99,6 +99,7 @@ function stripPlayUrl(item = {}) {
     sizeBytes: item.sizeBytes || 0,
     duration: item.duration || 0,
     resourceId: item.resourceId || item.streamId || '',
+    signCookie: item.signCookie || item.sign_cookie || '',
   };
 }
 
@@ -114,6 +115,7 @@ function downloadItem(item = {}) {
     duration: item.duration || 0,
     resourceId: item.resourceId || item.streamId || '',
     url: item.url || item.resourceLink || '',
+    signCookie: item.signCookie || item.sign_cookie || '',
   };
 }
 

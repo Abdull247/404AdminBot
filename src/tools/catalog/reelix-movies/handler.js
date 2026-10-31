@@ -209,6 +209,7 @@ async function handleDownload(args, context) {
     const file = await downloadReelixVideo(picked.url, {
       jid: context.jid,
       title: summary.title,
+      cookie: picked.signCookie || '',
     });
     if (file.ok) {
       return {
