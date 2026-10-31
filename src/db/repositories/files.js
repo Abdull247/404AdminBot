@@ -1,4 +1,5 @@
 import { sql } from '../client.js';
+import { jsonSafe } from '../../utils/text.js';
 
 export async function createStoredFile({
   id,
@@ -14,7 +15,7 @@ export async function createStoredFile({
 }) {
   const rows = await sql`
     INSERT INTO stored_files (id, jid, chat_type, filename, key, url, mimetype, size, source, metadata)
-    VALUES (${id}, ${jid}, ${chatType}, ${filename}, ${key}, ${url}, ${mimetype}, ${size}, ${source}, ${JSON.stringify(metadata)}::jsonb)
+    VALUES (${id}, ${jid}, ${chatType}, ${filename}, ${key}, ${url}, ${mimetype}, ${size}, ${source}, ${jsonSafe(metadata)}::jsonb)
     RETURNING *
   `;
   return rows[0] ?? null;

@@ -1,9 +1,10 @@
 import { sql } from '../client.js';
+import { jsonSafe, stripLoneSurrogates } from '../../utils/text.js';
 
 export async function upsertMemory({ jid, key, value, importance = 1, metadata = {} }) {
   const rows = await sql`
     INSERT INTO memories (jid, key, value, importance, metadata, updated_at)
-    VALUES (${jid}, ${key}, ${value}, ${importance}, ${JSON.stringify(metadata)}::jsonb, NOW())
+    VALUES (${jid}, ${key}, ${typeof value === 'string' ? stripLoneSurrogates(value) : value}, ${importance}, ${jsonSafe(metadata)}::jsonb, NOW())
     ON CONFLICT (jid, key) DO UPDATE SET
       value = EXCLUDED.value,
       importance = EXCLUDED.importance,

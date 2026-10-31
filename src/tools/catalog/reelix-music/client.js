@@ -218,7 +218,13 @@ export async function downloadReelixAudio(url, { jid = '', title = '' } = {}) {
     };
   }
 
-  if (!size) {
+  let written = 0;
+  try {
+    written = fs.statSync(filePath).size;
+  } catch {
+    written = 0;
+  }
+  if (!size || !written) {
     try { fs.unlinkSync(filePath); } catch { /* ignore */ }
     return { ok: false, error: 'audio download returned an empty file' };
   }
@@ -229,7 +235,7 @@ export async function downloadReelixAudio(url, { jid = '', title = '' } = {}) {
     filePath,
     filename,
     contentType: mime,
-    size,
+    size: written || size,
     title,
   };
 }

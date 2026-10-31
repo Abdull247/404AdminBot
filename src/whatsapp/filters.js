@@ -8,6 +8,10 @@ export function isStatusJid(jid) {
   return jid === 'status@broadcast';
 }
 
+export function isNewsletterJid(jid) {
+  return typeof jid === 'string' && jid.endsWith('@newsletter');
+}
+
 export function unwrapMessageContent(message) {
   return extractMessageContent(message?.message) || message?.message || {};
 }
@@ -48,6 +52,7 @@ export function stripBotMention(text, names = [], jids = []) {
 export function shouldIgnore(message) {
   if (!message) return true;
   if (message.key?.remoteJid === 'status@broadcast') return true;
+  if (isNewsletterJid(message.key?.remoteJid)) return true;
   if (message.messageStubType) return true;
 
   const content = unwrapMessageContent(message);

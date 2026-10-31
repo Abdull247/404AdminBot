@@ -1,4 +1,5 @@
 import { sql } from '../client.js';
+import { jsonSafe, stripLoneSurrogates } from '../../utils/text.js';
 
 export async function upsertChat({
   jid,
@@ -14,13 +15,13 @@ export async function upsertChat({
     )
     VALUES (
       ${jid},
-      ${name},
+      ${name ? stripLoneSurrogates(name) : null},
       ${type},
-      ${lastMessage},
-      ${lastSender},
+      ${lastMessage ? stripLoneSurrogates(lastMessage) : null},
+      ${lastSender ? stripLoneSurrogates(String(lastSender)) : null},
       NOW(),
       1,
-      ${JSON.stringify(metadata)}::jsonb,
+      ${jsonSafe(metadata)}::jsonb,
       NOW()
     )
     ON CONFLICT (jid) DO UPDATE SET

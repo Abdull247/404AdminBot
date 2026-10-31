@@ -5,7 +5,7 @@ import { tryHandleCommand } from '../commands/index.js';
 import { rememberUser } from '../memory/store.js';
 import { logger } from '../utils/logger.js';
 import { getAiRuntime } from '../config/providers.js';
-import { extractText, isGroupJid, isStatusJid, shouldIgnore, stripBotMention } from './filters.js';
+import { extractText, isGroupJid, isNewsletterJid, isStatusJid, shouldIgnore, stripBotMention } from './filters.js';
 import { downloadImageAttachment, hasImageMessage } from './media.js';
 import {
   botJids,
@@ -217,6 +217,7 @@ export async function handleIncomingMessage(sock, message) {
 
   const jid = message.key.remoteJid;
   if (!jid) return;
+  if (isNewsletterJid(jid)) return;
   if (appConfig.bot.ignoreStatus && isStatusJid(jid)) return;
 
   const text = extractText(message);

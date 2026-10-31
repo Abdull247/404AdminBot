@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import { downloadMediaMessage } from '@whiskeysockets/baileys';
-import { isGroupJid, unwrapMessageContent } from './filters.js';
+import { isGroupJid, isNewsletterJid, unwrapMessageContent } from './filters.js';
 import { createStoredFile } from '../db/repositories/files.js';
 import { logger } from '../utils/logger.js';
 import { makeObjectKey, r2Configured, uploadR2Object } from '../storage/r2.js';
@@ -16,6 +16,7 @@ export function hasIncomingAttachment(message) {
 
 export async function storeIncomingFile(sock, message, jid) {
   if (!r2Configured()) return null;
+  if (isNewsletterJid(jid) || isNewsletterJid(message?.key?.remoteJid)) return null;
   const attachment = getIncomingAttachment(message);
   if (!attachment) return null;
 

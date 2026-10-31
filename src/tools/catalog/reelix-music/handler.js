@@ -186,6 +186,8 @@ async function handleStream(args, context) {
     artist: summary.artist,
     source: summary.source,
     sentAs: 'audio',
+    url: summary.url,
+    streamUrl: summary.url,
     publicUrl: publicUrl || undefined,
     files: [{
       ok: true,
@@ -197,7 +199,7 @@ async function handleStream(args, context) {
       caption: summary.title || filename,
       ptt: false,
     }],
-    hint: 'The track is sent as an mp3 audio file. Recap the title and artist. Do not share the stream URL.',
+    hint: 'The track is sent as an audio file. Recap the title and artist, then share the stream URL (url/streamUrl) so the user can play it in a browser too.',
   };
 }
 

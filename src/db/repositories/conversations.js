@@ -1,9 +1,10 @@
 import { sql } from '../client.js';
+import { jsonSafe, stripLoneSurrogates } from '../../utils/text.js';
 
 export async function addMessage({ jid, role, content, metadata = {} }) {
   const rows = await sql`
     INSERT INTO conversations (jid, role, content, metadata)
-    VALUES (${jid}, ${role}, ${content}, ${JSON.stringify(metadata)}::jsonb)
+    VALUES (${jid}, ${role}, ${stripLoneSurrogates(content)}, ${jsonSafe(metadata)}::jsonb)
     RETURNING *
   `;
   return rows[0];

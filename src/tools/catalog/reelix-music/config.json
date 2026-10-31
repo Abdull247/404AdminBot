@@ -4,7 +4,7 @@
     "type": "function",
     "function": {
       "name": "reelix_music",
-      "description": "Look up songs on Reelix Music. Use this when the user asks to search for a song, artist, or album, wants track details, or wants to play/send a track. Start with action=search (returns structured JSON; Audiomack by default, or pass source=youtube|spotify). Then call action=details with the trackId for cover art plus title and artist. Use action=stream with that trackId to send the track as an mp3 audio file. Never invent tracks that were not returned. Do not mention stream URLs.",
+      "description": "Look up songs on Reelix Music. Use this when the user asks to search for a song, artist, or album, wants track details, or wants to play/send a track. Start with action=search (returns structured JSON; Audiomack by default, or pass source=youtube|spotify). Then call action=details with the trackId for cover art plus title and artist. Use action=stream with that trackId to send the track as an audio file and return a direct stream URL. Never invent tracks that were not returned. Share the returned stream URL with the user.",
       "parameters": {
         "type": "object",
         "properties": {
