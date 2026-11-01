@@ -1,0 +1,24 @@
+{
+  "enabled": true,
+  "definition": {
+    "type": "function",
+    "function": {
+      "name": "unwrap_view_once",
+      "description": "Open a WhatsApp view-once image and resend it to the current chat as a normal photo. Use it when the user replies to a view-once image (or sends one) and asks to unwrap, open, reveal, save, or resend it as a normal image. It only works on WhatsApp; on other platforms tell the user it is unavailable. The image is sent immediately, so keep your text reply short.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "description": "quoted: use the view-once image in the message the user replied to (default). current: use a view-once image attached to the current message."
+          },
+          "caption": {
+            "type": "string",
+            "description": "Optional caption for the resent image. Defaults to the original caption."
+          }
+        }
+      }
+    }
+  },
+  "options": {}
+}

@@ -158,6 +158,8 @@ Only one sandbox backend is exposed at a time. Set `"default"` in `sandboxes.jso
 
 `send_sticker` sends a WhatsApp sticker from `stickers/`. Each pack is a folder with a `.webp` and `info.json` (`id`, `description`, `whenToUse`, path). `stickers/config.json` lists every pack so the model can pick one. Call `list` to inspect, then `send` with an id such as `my_boss`. After the sticker, the bot still sends a short text reply.
 
+`unwrap_view_once` opens a WhatsApp view-once image and resends it to the same chat as a normal photo. Reply to the view-once image (or send one) and ask the bot to unwrap, open, reveal, save, or resend it, or use the `.unwrap` command. Use `source=quoted` (default) for the message being replied to and `source=current` for the current message. It only works on WhatsApp.
+
 `generate_image` creates an image from a text prompt using the Cloudflare AI provider. Set `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN`; models live in `cloudflare.json` (default `@cf/black-forest-labs/flux-1-schnell`). It reacts with an hourglass while running and a picture emoji when done, sends the image on WhatsApp, then stores it in the chat's R2 folder when R2 is configured.
 
 `file_storage` persists files to Cloudflare R2 and remembers them in the database, scoped to the requesting user or group. Set `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, and `R2_ENDPOINT` (plus optional `R2_PUBLIC_URL`). Actions: `upload` (content, base64, or path), `get`, `list`, `delete`. Incoming user files are also stored automatically for the chat.
@@ -213,6 +215,8 @@ Messages that start with `.` on WhatsApp or `/` on Telegram are handled before t
 .link-platform <code>         /link-platform <code>
 .unlink-platform              /unlink-platform
 .link-status                  /link-status
+.unwrap                       (WhatsApp only)
+.unwrap current               (WhatsApp only)
 ```
 
 `.menu` / `/menu` lists commands. `.personalities` lists the JSON configs in `personalities/`. `.personalities - Helpfulness` switches this chat to that personality. The choice is stored per user/chat.

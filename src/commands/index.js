@@ -6,6 +6,7 @@ import { parseCommand } from './parse.js';
 import { handlePersistence } from './persistence.js';
 import { handlePersonalities } from './personalities.js';
 import { handleReelix } from './reelix.js';
+import { handleUnwrapViewOnce } from './unwrap.js';
 import { linkCommandDefinitions } from './platform-link.js';
 import { commandPrefix } from './prefix.js';
 import { getCommand, listCommands, registerCommand } from './registry.js';
@@ -34,6 +35,13 @@ function loadCommands() {
     usage: '.reelix <title>  |  /reelix <title>  |  .reelix search <title>  |  .reelix details <id>',
     description: 'Search Reelix movies and series, then show details, cast, or resources.',
     handler: handleReelix,
+  });
+  registerCommand({
+    name: 'unwrap',
+    aliases: ['viewonce', 'view-once', 'reveal', 'vv'],
+    usage: '.unwrap  |  .unwrap current',
+    description: 'Resend a view-once image you replied to (or sent) as a normal photo. WhatsApp only.',
+    handler: handleUnwrapViewOnce,
   });
   if (persistenceFeatureEnabled()) {
     const command = getPersistenceConfig().command;

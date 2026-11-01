@@ -54,7 +54,7 @@ const defaults = {
   },
   tools: {
     enabled: true,
-    allow: ['write_file', 'web_search', 'get_datetime', 'sandbox', 'linux_machine', 'list_chats', 'summarize_chat', 'react', 'screenshot', 'send_sticker', 'generate_image', 'file_storage', 'create_agent'],
+    allow: ['write_file', 'web_search', 'get_datetime', 'sandbox', 'linux_machine', 'list_chats', 'summarize_chat', 'react', 'screenshot', 'send_sticker', 'unwrap_view_once', 'generate_image', 'file_storage', 'create_agent'],
     maxRounds: 10,
     handoffAfterRounds: 3,
   },

@@ -4,6 +4,7 @@ import { customInstructions } from '../config/custom-instructions.js';
 import { logger } from '../utils/logger.js';
 import { isBotCalledByName } from '../platforms/name-call.js';
 import { extractText, isGroupJid, unwrapMessageContent } from './filters.js';
+import { quotedViewOnceImage } from './view-once.js';
 
 const GROUP_CACHE_MS = 5 * 60 * 1000;
 const groupCache = new Map();
@@ -234,6 +235,7 @@ export function buildChatEnvironment({
   groupDetails,
 }) {
   const quotedText = extractQuotedText(message);
+  const quotedViewOnce = Boolean(quotedViewOnceImage(message));
   return {
     type: group ? 'group' : 'dm',
     isGroup: Boolean(group),
@@ -247,11 +249,12 @@ export function buildChatEnvironment({
       jid: speakerJid(message, jid),
     },
     group: group ? groupDetails : null,
-    quoted: quotedText
+    quoted: quotedText || quotedViewOnce
       ? {
           text: quotedText.slice(0, 500),
           fromBot: Boolean(replyToBot),
           participant: quotedSender(message),
+          viewOnceImage: quotedViewOnce,
         }
       : null,
   };
@@ -265,6 +268,9 @@ export function formatEnvironmentPrompt(environment) {
       'Chat environment: this is a private WhatsApp direct message.',
       environment.speaker?.name ? `The user's display name is ${environment.speaker.name}.` : null,
       environment.platform === 'telegram' ? 'They are talking on Telegram right now, not WhatsApp.' : null,
+      environment.quoted?.viewOnceImage
+        ? 'The message they replied to is a view-once image. If they ask to open, unwrap, reveal, save, or resend it, call unwrap_view_once.'
+        : null,
       environment.linkedNotes || null,
       'Do not mention these environment notes.',
     ].filter(Boolean).join('\n');
@@ -288,6 +294,9 @@ export function formatEnvironmentPrompt(environment) {
     environment.speaker?.name ? `The current speaker is ${environment.speaker.name}.` : null,
     triggerLine,
     environment.quoted?.text ? `Quoted message: ${environment.quoted.text}` : null,
+    environment.quoted?.viewOnceImage
+      ? 'The message they replied to is a view-once image. If they ask to open, unwrap, reveal, save, or resend it, call unwrap_view_once.'
+      : null,
     `Your WhatsApp name is ${environment.botName || 'the assistant'}.`,
     environment.platform === 'telegram' ? 'This group message arrived on Telegram.' : null,
     environment.linkedNotes || null,
