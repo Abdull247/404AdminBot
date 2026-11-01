@@ -138,6 +138,17 @@ export const env = {
   REELIX_MUSIC_AUDIO_MAX_MB: optionalInt('REELIX_MUSIC_AUDIO_MAX_MB', 50),
   REELIX_MUSIC_AUDIO_TIMEOUT_MS: optionalIntWithDefaultMs('REELIX_MUSIC_AUDIO_TIMEOUT_MS', 180000),
   BASE_URL: optional('BASE_URL', '').replace(/\/+$/, ''),
+  TELEGRAM_ENABLED: process.env.TELEGRAM_ENABLED === undefined || process.env.TELEGRAM_ENABLED === ''
+    ? null
+    : optionalBool('TELEGRAM_ENABLED', true),
+  TELEGRAM_BOT_TOKEN: optional('TELEGRAM_BOT_TOKEN', ''),
+  TELEGRAM_BOT_USERNAME: optional('TELEGRAM_BOT_USERNAME', '').replace(/^@/, ''),
+  TELEGRAM_OWNER_IDS: optional('TELEGRAM_OWNER_IDS', '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean),
+  TELEGRAM_CONFIG_PATH: path.resolve(rootDir, optional('TELEGRAM_CONFIG_PATH', './telegram.json')),
+  PLATFORM_LINK_CONFIG_PATH: path.resolve(rootDir, optional('PLATFORM_LINK_CONFIG_PATH', './platform-link.json')),
 };
 
 if (env.E2B_API_KEY && !process.env.E2B_API_KEY) {

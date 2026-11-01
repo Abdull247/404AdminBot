@@ -7,6 +7,7 @@ import {
   listChatJobs,
   persistenceAvailable,
 } from '../persistence/manager.js';
+import { commandPrefix } from './prefix.js';
 
 function parseArg(arg) {
   const raw = String(arg || '').trim();
@@ -21,7 +22,8 @@ function parseArg(arg) {
   return { action: 'status', id: raw };
 }
 
-export async function handlePersistence({ jid, arg }) {
+export async function handlePersistence(context) {
+  const { jid, arg } = context;
   if (!persistenceAvailable()) {
     return 'Persistent agents are off. Enable supports_persistence_agent on a sandbox in sandboxes.json.';
   }
@@ -29,7 +31,8 @@ export async function handlePersistence({ jid, arg }) {
   if (parsed.action === 'list') return listChatJobs(jid);
   if (!parsed.id) {
     const command = getPersistenceConfig().command;
-    return `Give a job id, for example .${command} logs jen-...`;
+    const prefix = commandPrefix(context);
+    return `Give a job id, for example ${prefix}${command} logs jen-...`;
   }
   if (parsed.action === 'logs') return inspectLogs(jid, parsed.id);
   if (parsed.action === 'result') return inspectResult(jid, parsed.id);

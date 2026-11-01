@@ -1,0 +1,24 @@
+{
+  "enabled": true,
+  "command": "link-platform",
+  "aliases": ["link-platfrom", "linkplatform", "link"],
+  "unlinkCommand": "unlink-platform",
+  "unlinkAliases": ["unlink-platfrom", "unlinkplatform", "unlink"],
+  "statusCommand": "link-status",
+  "statusAliases": ["linkstatus", "platform-status"],
+  "code": {
+    "length": 10,
+    "charset": "ABCDEFGHJKLMNPQRSTUVWXYZ23456789",
+    "prefix": ""
+  },
+  "ttlSeconds": 600,
+  "oneTime": true,
+  "maxActiveTokensPerIdentity": 3,
+  "allowRelink": true,
+  "dmOnly": true,
+  "session": {
+    "oneTimeUse": true,
+    "expiresAfterHours": 168,
+    "touchOnUse": true
+  }
+}

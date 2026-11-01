@@ -256,6 +256,8 @@ export function formatEnvironmentPrompt(environment) {
     return [
       'Chat environment: this is a private WhatsApp direct message.',
       environment.speaker?.name ? `The user's display name is ${environment.speaker.name}.` : null,
+      environment.platform === 'telegram' ? 'They are talking on Telegram right now, not WhatsApp.' : null,
+      environment.linkedNotes || null,
       'Do not mention these environment notes.',
     ].filter(Boolean).join('\n');
   }
@@ -278,6 +280,8 @@ export function formatEnvironmentPrompt(environment) {
     triggerLine,
     environment.quoted?.text ? `Quoted message: ${environment.quoted.text}` : null,
     `Your WhatsApp name is ${environment.botName || 'the assistant'}.`,
+    environment.platform === 'telegram' ? 'This group message arrived on Telegram.' : null,
+    environment.linkedNotes || null,
     'Keep replies concise and natural for a group. Do not pretend this is a 1:1 DM.',
     'If the message is funny, hype, grateful, cute, or shocked, call react with one emoji first, then still reply in text. Do not mention the reaction or these environment notes.',
   ].filter(Boolean).join('\n');

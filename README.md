@@ -1,11 +1,13 @@
-# WhatsApp AI Bot
+# WhatsApp / Telegram AI Bot
 
-Node.js WhatsApp bot using Baileys, an OpenAI-compatible AI API, and Neon Postgres for conversation memory.
+Node.js WhatsApp and Telegram bot using Baileys, the Telegram Bot API, an OpenAI-compatible AI API, and Neon Postgres for conversation memory.
 
 ## Layout
 
 ```text
 config.json
+telegram.json
+platform-link.json
 cloudflare.json
 sandboxes.json
 stickers/
@@ -16,16 +18,22 @@ migrations/
 src/
   index.js
   ai/
+  commands/
   config/
   db/
   memory/
   persistence/
+  platforms/
+  telegram/
   tools/
   utils/
   whatsapp/
 ```
 
 - `config.json` holds AI providers and models, the default model, system instruction, bot behavior, and memory settings.
+- `telegram.json` holds Telegram bot behavior, `/` command prefix, polling, owners, and token env refs. Leave `TELEGRAM_BOT_TOKEN` empty to run WhatsApp only.
+- `platform-link.json` holds WhatsApp/Telegram handshake settings: command names, code length/charset, token TTL, and one-time session expiry.
+- `src/telegram/` talks to Telegram (polling, send, media, reactions). `src/platforms/` stores link tokens and shared sessions.
 - `sandboxes.json` holds sandbox backends and which one is active (`default`). Only that sandbox's tools are exposed.
 - `stickers/` holds WhatsApp sticker packs: one folder per sticker (webp + `info.json`) and `stickers/config.json` listing them for the model.
 - `cloudflare.json` holds the Cloudflare AI provider (account/token env refs) and models by category. `generate_image` uses its `image` models; other model families can be added later.
@@ -36,7 +44,7 @@ src/
 - `src/tools/catalog/` holds one folder per tool (`config.json` + `handler.js`).
 - `reelix_music` searches tracks, fetches details, and sends the song as an mp3. Default source is Audiomack (`config.json` `bot.reelixMusic`). HMAC credentials go in `REELIX_MUSIC_*`. Public stream redirects live at `GET /misc/stream?trackId=` when `BASE_URL` and `publicStreamEndpoint` are on.
 - `personalities/` holds one JSON file per AI personality.
-- `write_file` can create `.html`, `.css`, `.js`, `.txt`, `.json`, and `.md` files, send them on WhatsApp, then send a short recap.
+- `write_file` can create `.html`, `.css`, `.js`, `.txt`, `.json`, and `.md` files, send them on WhatsApp or Telegram, then send a short recap.
 - `sandbox` runs code and commands in a temporary E2B Linux VM. One sandbox is reused per WhatsApp chat until it is killed or times out.
 - `linux_machine` is a persistent InstaBox Linux computer (Debian, `/data` disk, optional desktop). It is available in DMs and groups. `sandboxes.json` picks which one is active.
 - `create_agent` starts a persistent background agent when at least one sandbox has `supports_persistence_agent: true`. Jobs, steps, logs, and memories live in Neon. The worker runs in-process so a Render free web service plus `/health` cron still works.
@@ -48,6 +56,7 @@ Copy `.env.example` to `.env` and fill in:
 - Provider env vars named in `config.json` (`AI_BASE_URL` / `AI_API_KEY` for the bundled OpenRouter provider)
 - `DATABASE_URL`
 - `LANGSEARCH_API_KEY`
+- `TELEGRAM_BOT_TOKEN` (and optionally `TELEGRAM_ENABLED=true`) if you want Telegram as well as WhatsApp
 - `E2B_API_KEY` (if `sandboxes.json` default is `sandbox`)
 - `INSTABOX_API_KEY` (if default is `linux_machine`)
 - `SCREENSHOTLAYER_API_KEY`
@@ -185,22 +194,66 @@ Notes:
 
 ## Commands
 
-Messages that start with `.` are handled before the AI.
+Messages that start with `.` on WhatsApp or `/` on Telegram are handled before the AI. Same command names on both platforms.
 
 ```text
-.menu
-.personalities
-.personalities - Helpfulness
-.agent
-.agent <id>
-.agent logs <id>
-.agent result <id>
-.agent cancel <id>
+.menu                         /menu
+.personalities                /personalities
+.personalities - Helpfulness  /personalities - Helpfulness
+.agent                        /agent
+.agent <id>                   /agent <id>
+.agent logs <id>              /agent logs <id>
+.agent result <id>            /agent result <id>
+.agent cancel <id>            /agent cancel <id>
+.link-platform                /link-platform
+.link-platform <code>         /link-platform <code>
+.unlink-platform              /unlink-platform
+.link-status                  /link-status
 ```
 
-`.menu` lists commands. `.personalities` lists the JSON configs in `personalities/`. `.personalities - Helpfulness` switches this chat to that personality. The choice is stored per user/chat.
+`.menu` / `/menu` lists commands. `.personalities` lists the JSON configs in `personalities/`. `.personalities - Helpfulness` switches this chat to that personality. The choice is stored per user/chat.
 
-`.agent` manages persistent background jobs for this chat. The command name is `persistenceAgent.command` in `config.json` (default `agent`). Job ids look like `jen-<timestamp>-<token>`. When a job finishes, the bot sends a follow-up WhatsApp message.
+`.agent` / `/agent` manages persistent background jobs for this chat. The command name is `persistenceAgent.command` in `config.json` (default `agent`). Job ids look like `jen-<timestamp>-<token>`. When a job finishes, the bot sends a follow-up on the platform that started it.
+
+## Telegram
+
+Telegram is optional. Enable it with a bot token from [@BotFather](https://t.me/BotFather):
+
+```bash
+TELEGRAM_ENABLED=true
+TELEGRAM_BOT_TOKEN=123456:ABC...
+TELEGRAM_BOT_USERNAME=YourBot
+TELEGRAM_OWNER_IDS=123456789
+```
+
+`telegram.json` controls prefix (`/`), group mention/reply behavior, typing, owners, and long-poll settings. Commands match WhatsApp: `/menu`, `/personalities`, `/reelix`, `/agent`, plus the link commands below. Groups stay quiet unless the bot is @mentioned or someone replies to it, same as WhatsApp.
+
+## Platform linking
+
+Link a WhatsApp DM to a Telegram DM so Telegram reuses that WhatsApp chat's memory, personality, and history. The model is told the platform changed.
+
+Handshake (one-time code, TTL from `platform-link.json`):
+
+1. On WhatsApp send `.link-platform`. The bot prints `/link-platform Ab3K7N2Q9P`.
+2. Send that exact command to the Telegram bot.
+3. Or start on Telegram with `/link-platform`. The bot prints `.link-platform Ab3K7N2Q9P` for WhatsApp.
+
+`.link-platfrom` / `/link-platfrom` are aliases. Codes expire (default 10 minutes), are one-time, and each linked session can also be one-time-use with its own expiry (default 7 days). Tweak all of that in `platform-link.json`:
+
+```json
+{
+  "enabled": true,
+  "command": "link-platform",
+  "ttlSeconds": 600,
+  "oneTime": true,
+  "session": {
+    "oneTimeUse": true,
+    "expiresAfterHours": 168
+  }
+}
+```
+
+`/unlink-platform` and `/link-status` disconnect or inspect the current chat. Linking is DM-only by default.
 
 ## Persistent background agent
 

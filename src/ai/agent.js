@@ -10,6 +10,7 @@ import { logger } from '../utils/logger.js';
 import { BUSY_REACTIONS, CHECK, HOURGLASS, reactToMessage, removeReaction } from '../whatsapp/react.js';
 import { formatEnvironmentPrompt } from '../whatsapp/group.js';
 import { isOwnerJid } from '../whatsapp/owner.js';
+import { isTelegramOwner } from '../telegram/owner.js';
 import { createChatCompletion } from './client.js';
 import { isGreeting } from './greetings.js';
 import { buildMessages } from './prompt.js';
@@ -79,6 +80,7 @@ function summarizeToolWork(messages) {
 async function handoffToPersistent({
   text,
   jid,
+  memoryJid,
   pushName,
   sock,
   message,
@@ -103,7 +105,7 @@ async function handoffToPersistent({
     message,
   });
   if (!result?.ok || !result?.reply) return null;
-  saveAssistantTurn(jid, result.reply, {
+  saveAssistantTurn(memoryJid || jid, result.reply, {
     runtime,
     files: artifacts.map((file) => file.filename),
     persistenceJobId: result.id,
@@ -117,6 +119,7 @@ async function handoffToPersistent({
 
 export async function generateReply({
   jid,
+  memoryJid = null,
   text,
   pushName,
   sock,
@@ -125,15 +128,16 @@ export async function generateReply({
   existingReaction = '',
   image = null,
 }) {
+  const historyJid = memoryJid || jid;
   let history = [];
   let memories = [];
 
   try {
-    const context = await loadContext(jid);
+    const context = await loadContext(historyJid);
     history = context.history;
     memories = context.memories;
   } catch (error) {
-    logger.warn({ err: error, jid }, 'failed to load memory, continuing without it');
+    logger.warn({ err: error, jid: historyJid }, 'failed to load memory, continuing without it');
   }
 
   const lastHistory = history[history.length - 1];
@@ -144,13 +148,15 @@ export async function generateReply({
 
   let personality = getDefaultPersonality();
   try {
-    const settings = await getChatSettings(jid);
+    const settings = await getChatSettings(historyJid);
     personality = findPersonality(settings?.personality) || personality;
   } catch (error) {
-    logger.warn({ err: error, jid }, 'failed to load chat personality');
+    logger.warn({ err: error, jid: historyJid }, 'failed to load chat personality');
   }
 
-  const owner = isOwnerJid(jid, sock);
+  const owner = sock?.platform === 'telegram'
+    ? isTelegramOwner(message)
+    : isOwnerJid(jid, sock);
   const runtime = getAiRuntime();
   const visionImage = runtime.imageSupport ? image : null;
   const messages = buildMessages({
@@ -161,7 +167,7 @@ export async function generateReply({
     systemInstruction: formatPersonalityPrompt(personality),
     environment: {
       ...environment,
-      prompt: formatEnvironmentPrompt(environment),
+      prompt: environment?.prompt || formatEnvironmentPrompt(environment),
     },
     image: visionImage,
   });
@@ -273,6 +279,7 @@ export async function generateReply({
         const handed = await handoffToPersistent({
           text,
           jid,
+          memoryJid: historyJid,
           pushName,
           sock,
           message,
@@ -307,7 +314,7 @@ export async function generateReply({
           const parsed = parseToolPayload(result.message?.content);
           if (parsed?.reply) {
             if (parsed.ok) expressiveReaction = HOURGLASS;
-            saveAssistantTurn(jid, parsed.reply, {
+            saveAssistantTurn(historyJid, parsed.reply, {
               runtime,
               files: artifacts.map((file) => file.filename),
               persistenceJobId: parsed.id,
@@ -350,7 +357,7 @@ export async function generateReply({
       || 'I could not finish that reply. Send it again and I will try a shorter pass.';
   }
 
-  saveAssistantTurn(jid, reply, {
+  saveAssistantTurn(historyJid, reply, {
     runtime,
     files: artifacts.map((file) => file.filename),
   });

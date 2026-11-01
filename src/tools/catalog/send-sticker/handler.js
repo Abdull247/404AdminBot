@@ -46,7 +46,7 @@ export async function handler(args = {}, context = {}) {
   }
 
   if (!context.sock || !context.jid) {
-    return { ok: false, error: 'no WhatsApp chat to send a sticker to' };
+    return { ok: false, error: 'no chat to send a sticker to' };
   }
   if (!fs.existsSync(sticker.absPath)) {
     return { ok: false, error: `sticker file missing: ${sticker.path}` };

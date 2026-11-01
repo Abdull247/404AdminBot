@@ -6,6 +6,9 @@ import { persistenceWorkerStatus } from '../persistence/worker.js';
 import { logger } from '../utils/logger.js';
 import { requestQueueSnapshot } from '../whatsapp/request-queue.js';
 import { getConnectionStatus, getCurrentSocket } from '../whatsapp/socket.js';
+import { getTelegramBot, getTelegramStatus } from '../telegram/socket.js';
+import { telegramEnabled } from '../config/telegram.js';
+import { platformLinkEnabled } from '../config/platform-link.js';
 import { handleMiscStream, logMiscStreamError } from './misc-stream.js';
 
 function json(res, status, body) {
@@ -24,6 +27,14 @@ function healthPayload() {
     bot: appConfig.bot.name,
     whatsapp: getConnectionStatus(),
     jid: sock?.user?.id || null,
+    telegram: {
+      enabled: telegramEnabled(),
+      status: getTelegramStatus(),
+      username: getTelegramBot()?.username || null,
+    },
+    platformLink: {
+      enabled: platformLinkEnabled(),
+    },
     uptime: Math.round(process.uptime()),
     persistenceAgent: {
       enabled: persistenceFeatureEnabled(),

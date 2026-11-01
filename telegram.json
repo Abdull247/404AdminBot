@@ -1,0 +1,28 @@
+{
+  "enabled": true,
+  "token": { "env": "TELEGRAM_BOT_TOKEN", "required": true },
+  "botUsername": { "env": "TELEGRAM_BOT_USERNAME", "required": false },
+  "commandPrefix": "/",
+  "ignoreGroups": true,
+  "ignoreStatus": true,
+  "respondToMentionsInGroups": true,
+  "respondToRepliesInGroups": true,
+  "reactInGroups": true,
+  "reactInDms": true,
+  "typingIndicator": true,
+  "ownerIds": [],
+  "logGroupMessages": true,
+  "parseMode": "HTML",
+  "polling": {
+    "enabled": true,
+    "timeoutSeconds": 30,
+    "limit": 100,
+    "retryMs": 4000
+  },
+  "queue": {
+    "maxConcurrentChats": 4,
+    "maxPerChat": 8,
+    "maxGlobal": 48,
+    "notifyQueued": true
+  }
+}

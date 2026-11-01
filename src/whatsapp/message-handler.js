@@ -22,6 +22,12 @@ import { pickGroupReaction, reactToMessage } from './react.js';
 import { enqueueChatWork } from './request-queue.js';
 import { sendArtifacts } from './send.js';
 import { toWhatsAppText } from './markdown.js';
+import { WHATSAPP } from '../platforms/ids.js';
+import {
+  linkedEnvironmentNotes,
+  resolveLinkedSession,
+  touchSessionUse,
+} from '../platforms/link.js';
 
 const inflight = new Set();
 const queuedNoticeAt = new Map();
@@ -98,6 +104,7 @@ async function processAddressedMessage(sock, message, ctx) {
   }
 
   const groupDetails = group ? await loadGroupDetails(sock, jid) : null;
+  const session = group ? null : await resolveLinkedSession(WHATSAPP, jid);
   const environment = buildChatEnvironment({
     message,
     jid,
@@ -108,6 +115,15 @@ async function processAddressedMessage(sock, message, ctx) {
     trigger,
     groupDetails,
   });
+  environment.platform = WHATSAPP;
+  if (session) {
+    environment.linkedSession = {
+      id: session.id,
+      memoryJid: jid,
+      otherPlatform: 'telegram',
+    };
+    environment.linkedNotes = linkedEnvironmentNotes(session, WHATSAPP);
+  }
   const promptText = group
     ? (stripBotMention(text, botNames(sock), botJids(sock)) || text)
     : text;
@@ -157,10 +173,12 @@ async function processAddressedMessage(sock, message, ctx) {
       ? await tryHandleCommand({
           text: promptText,
           jid,
+          nativeJid: jid,
           pushName,
           sock,
           message,
           environment,
+          platform: WHATSAPP,
         })
       : null;
     let image = null;
@@ -198,6 +216,9 @@ async function processAddressedMessage(sock, message, ctx) {
 
     markBotReply(jid);
     await sock.sendMessage(jid, { text: replyText }, { quoted: message });
+    if (session && commandReply == null) {
+      await touchSessionUse(session, WHATSAPP, { lastMessagePreview: replyText.slice(0, 120) });
+    }
     logger.info(
       {
         jid,

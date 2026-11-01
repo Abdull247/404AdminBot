@@ -4,6 +4,8 @@ import { getAiRuntime } from './config/providers.js';
 import { getPersistenceConfig, persistenceFeatureEnabled } from './config/persistence.js';
 import { getDefaultSandbox } from './config/sandboxes.js';
 import { listStickers } from './config/stickers.js';
+import { telegramConfig, telegramEnabled } from './config/telegram.js';
+import { platformLinkConfig, platformLinkEnabled } from './config/platform-link.js';
 import { runMigrations } from './db/migrate.js';
 import { loadCommands } from './commands/index.js';
 import { loadPersonalities } from './personalities/load.js';
@@ -13,6 +15,7 @@ import { initTools } from './tools/index.js';
 import { logger } from './utils/logger.js';
 import { createWhatsAppSocket } from './whatsapp/auth.js';
 import { handleIncomingMessage } from './whatsapp/message-handler.js';
+import { startTelegramPolling } from './telegram/index.js';
 
 async function main() {
   if (env.WHATSAPP_AUTH_STORE !== 'postgres') {
@@ -40,12 +43,26 @@ async function main() {
       stickers: listStickers().map((sticker) => sticker.id),
       bot: appConfig.bot.name,
       personalities: personalities.map((item) => item.id),
+      telegram: {
+        enabled: telegramEnabled(),
+        username: telegramConfig.botUsername || null,
+        prefix: telegramConfig.commandPrefix,
+      },
+      platformLink: {
+        enabled: platformLinkEnabled(),
+        command: platformLinkConfig.command,
+        ttlSeconds: platformLinkConfig.ttlSeconds,
+        oneTimeSession: platformLinkConfig.session?.oneTimeUse !== false,
+      },
     },
-    'starting WhatsApp AI bot',
+    'starting WhatsApp / Telegram AI bot',
   );
   await runMigrations();
   startPersistenceWorker();
-  await createWhatsAppSocket({ onMessage: handleIncomingMessage });
+  await Promise.all([
+    createWhatsAppSocket({ onMessage: handleIncomingMessage }),
+    startTelegramPolling(),
+  ]);
 }
 
 main().catch((error) => {

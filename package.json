@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Expandable WhatsApp AI bot using Baileys and Neon",
+  "description": "Expandable WhatsApp and Telegram AI bot using Baileys, Telegram Bot API, and Neon",
   "main": "src/index.js",
   "engines": {
     "node": ">=18.18.0"

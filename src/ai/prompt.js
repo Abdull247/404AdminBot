@@ -147,7 +147,9 @@ export function buildMessages({
   } else if (pushName) {
     messages.push({
       role: 'system',
-      content: `The user's WhatsApp display name is ${pushName}.`,
+      content: environment?.platform === 'telegram'
+        ? `The user's Telegram display name is ${pushName}.`
+        : `The user's WhatsApp display name is ${pushName}.`,
     });
   }
 

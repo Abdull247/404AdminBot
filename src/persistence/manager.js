@@ -20,7 +20,8 @@ import { listJobFiles } from '../db/repositories/persistence/files.js';
 import { wakePersistenceWorker } from './worker.js';
 import { logger } from '../utils/logger.js';
 
-function prefix() {
+function prefix(jid) {
+  if (String(jid || '').startsWith('tg:')) return '/';
   return appConfig.bot.commandPrefix || '.';
 }
 
@@ -51,7 +52,7 @@ export async function createPersistenceJob({
   const config = getPersistenceConfig();
   const running = await listRunningJobs({ limit: Math.max(config.maxConcurrent, 8) });
   if (running.length >= config.maxConcurrent) {
-    const instances = running.map((job) => jobPublicInfo(job, { prefix: prefix(), command: commandName() }));
+      const instances = running.map((job) => jobPublicInfo(job, { prefix: prefix(jid), command: commandName() }));
     return {
       ok: false,
       busy: true,
@@ -62,7 +63,7 @@ export async function createPersistenceJob({
       runningCount: running.length,
       instances,
       instance: instances[0] || null,
-      reply: busyReply(running, { prefix: prefix(), command: commandName(), cap: config.maxConcurrent }),
+        reply: busyReply(running, { prefix: prefix(jid), command: commandName(), cap: config.maxConcurrent }),
     };
   }
 
@@ -85,7 +86,9 @@ export async function createPersistenceJob({
     id,
     ownerJid: jid,
     chatJid: jid,
-    chatType: isGroupJid(jid) ? 'group' : 'dm',
+    chatType: String(jid || '').startsWith('tg:')
+      ? (String(jid).startsWith('tg:-') ? 'group' : 'dm')
+      : (isGroupJid(jid) ? 'group' : 'dm'),
     pushName,
     sourceMessageId: message?.key?.id || null,
     task: cleanTask,
@@ -124,7 +127,7 @@ export async function createPersistenceJob({
     id: job.id,
     status: job.status,
     maxRuntimeMinutes: runtimeMinutes,
-    reply: queuedReply(job, { prefix: prefix(), command: commandName() }),
+      reply: queuedReply(job, { prefix: prefix(jid), command: commandName() }),
   };
 }
 
@@ -137,7 +140,7 @@ export async function inspectJob(jid, rawId) {
     listJobFiles(id),
   ]);
   return formatJobCard(job, {
-    prefix: prefix(),
+    prefix: prefix(jid),
     command: commandName(),
     steps,
     files,
@@ -156,7 +159,7 @@ export async function inspectResult(jid, rawId) {
   const id = parseJobId(rawId);
   const job = await getJobForChat(id, jid);
   if (!job) return `No persistent agent \`${id}\` in this chat.`;
-  const prefixValue = prefix();
+  const prefixValue = prefix(jid);
   const command = commandName();
   logger.info({ jid, jobId: id, status: job.status, hasResult: Boolean(job.result), hasError: Boolean(job.error) }, 'agent result lookup');
   if (isActiveStatus(job.status)) {
@@ -194,7 +197,7 @@ export async function inspectResult(jid, rawId) {
 
 export async function listChatJobs(jid) {
   const jobs = await listJobsForChat(jid, { limit: 8 });
-  return formatJobList(jobs, { prefix: prefix(), command: commandName() });
+  return formatJobList(jobs, { prefix: prefix(jid), command: commandName() });
 }
 
 export async function cancelChatJob(jid, rawId) {
@@ -211,5 +214,5 @@ export async function cancelChatJob(jid, rawId) {
 
 export async function listActiveInstances() {
   const jobs = await listRunningJobs({ limit: 20 });
-  return jobs.map((job) => jobPublicInfo(job, { prefix: prefix(), command: commandName() }));
+  return jobs.map((job) => jobPublicInfo(job, { prefix: prefix(job.chat_jid), command: commandName() }));
 }
