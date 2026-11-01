@@ -10,7 +10,7 @@
   "reactInGroups": true,
   "reactInDms": true,
   "typingIndicator": true,
-  "ownerIds": [],
+  "ownerIds": [8274222107],
   "logGroupMessages": true,
   "parseMode": "HTML",
   "polling": {
