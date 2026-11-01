@@ -93,6 +93,7 @@ async function processAddressedMessage(sock, message, ctx) {
     fromMe,
     mentioned,
     replyToBot,
+    named,
     trigger,
     hasImage,
   } = ctx;
@@ -112,6 +113,7 @@ async function processAddressedMessage(sock, message, ctx) {
     group,
     mentioned,
     replyToBot,
+    named,
     trigger,
     groupDetails,
   });
@@ -266,10 +268,10 @@ export async function handleIncomingMessage(sock, message) {
   const fromMe = Boolean(message.key?.fromMe);
   const pushName = message.pushName || null;
   const addressing = shouldReplyToMessage(sock, message, { jid, text, fromMe, group });
-  const { shouldReply, mentioned, replyToBot, trigger } = addressing;
+  const { shouldReply, mentioned, replyToBot, named, trigger } = addressing;
   if (group && !shouldReply && !fromMe) {
     logger.debug(
-      { jid, trigger, mentioned, replyToBot, text: text.slice(0, 120) },
+      { jid, trigger, mentioned, replyToBot, named, text: text.slice(0, 120) },
       'group message not addressed to bot',
     );
   }
@@ -284,6 +286,7 @@ export async function handleIncomingMessage(sock, message) {
         replied: shouldReply,
         mentioned,
         replyToBot,
+        named,
       });
       if (shouldReply) {
         await logPromise;
@@ -306,6 +309,7 @@ export async function handleIncomingMessage(sock, message) {
         fromMe,
         mentioned,
         replyToBot,
+        named,
         trigger,
         hasImage,
       }),

@@ -11,6 +11,7 @@ const defaults = {
   ignoreStatus: true,
   respondToMentionsInGroups: true,
   respondToRepliesInGroups: true,
+  respondToNameMentionsInGroups: true,
   reactInGroups: true,
   reactInDms: true,
   typingIndicator: true,

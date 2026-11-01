@@ -52,6 +52,7 @@ export async function logIncomingMessage(sock, message, {
   replied = false,
   mentioned = false,
   replyToBot = false,
+  named = false,
 } = {}) {
   const jid = message?.key?.remoteJid;
   if (!jid) return;
@@ -81,6 +82,7 @@ export async function logIncomingMessage(sock, message, {
         lastPushName: safePushName,
         mentioned,
         replyToBot,
+        named,
         group: groupDetails || undefined,
       },
     });
@@ -103,6 +105,7 @@ export async function logIncomingMessage(sock, message, {
         replied,
         mentioned,
         replyToBot,
+        named,
         source: 'whatsapp',
       },
     });

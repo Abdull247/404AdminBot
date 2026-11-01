@@ -2,6 +2,7 @@ import { areJidsSameUser, jidNormalizedUser } from '@whiskeysockets/baileys';
 import { appConfig } from '../config/load-config.js';
 import { customInstructions } from '../config/custom-instructions.js';
 import { logger } from '../utils/logger.js';
+import { isBotCalledByName } from '../platforms/name-call.js';
 import { extractText, isGroupJid, unwrapMessageContent } from './filters.js';
 
 const GROUP_CACHE_MS = 5 * 60 * 1000;
@@ -140,26 +141,31 @@ export function isReplyToBot(sock, message) {
 export function isAddressedInGroup(sock, message, text = '') {
   const mentioned = isBotMentioned(sock, message, text);
   const replyToBot = isReplyToBot(sock, message);
+  const named = isBotCalledByName(text || extractText(message));
   const mentionOk = mentioned && appConfig.bot.respondToMentionsInGroups !== false;
   const replyOk = replyToBot && appConfig.bot.respondToRepliesInGroups !== false;
+  const nameOk = named && appConfig.bot.respondToNameMentionsInGroups !== false;
   return {
     mentioned,
     replyToBot,
-    addressed: mentionOk || replyOk,
+    named,
+    addressed: mentionOk || replyOk || nameOk,
     trigger: mentioned && replyToBot
       ? 'mention_and_reply'
       : mentioned
         ? 'mention'
         : replyToBot
           ? 'reply'
-          : 'message',
+          : nameOk
+            ? 'name'
+            : 'message',
   };
 }
 
 export function shouldReplyToMessage(sock, message, { jid, text, fromMe, group } = {}) {
-  if (fromMe) return { shouldReply: false, mentioned: false, replyToBot: false, trigger: 'message' };
+  if (fromMe) return { shouldReply: false, mentioned: false, replyToBot: false, named: false, trigger: 'message' };
   if (!group) {
-    return { shouldReply: true, mentioned: false, replyToBot: false, trigger: 'message' };
+    return { shouldReply: true, mentioned: false, replyToBot: false, named: false, trigger: 'message' };
   }
 
   const addressing = isAddressedInGroup(sock, message, text);
@@ -223,6 +229,7 @@ export function buildChatEnvironment({
   group,
   mentioned,
   replyToBot,
+  named,
   trigger,
   groupDetails,
 }) {
@@ -233,6 +240,7 @@ export function buildChatEnvironment({
     trigger: trigger || 'message',
     mentioned: Boolean(mentioned),
     replyToBot: Boolean(replyToBot),
+    named: Boolean(named),
     botName: appConfig.bot.name,
     speaker: {
       name: pushName || null,
@@ -267,6 +275,7 @@ export function formatEnvironmentPrompt(environment) {
     mention: 'They @mentioned / tagged you in this message. Reply to them in the group.',
     reply: 'They replied to one of your messages. Continue that thread in the group.',
     mention_and_reply: 'They @mentioned you and replied to one of your messages. Reply in the group.',
+    name: 'They called you by name in the group. Reply to them.',
     message: 'A group member is talking to you. Reply in the group.',
   }[environment.trigger] || 'Reply in the group.';
 

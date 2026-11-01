@@ -53,7 +53,7 @@ async function maybeNotifyQueued(jid, message, snapshot) {
   }
 }
 
-function buildTelegramEnvironment({ message, jid, pushName, group, mentioned, replyToBot, trigger, session, memoryJid }) {
+function buildTelegramEnvironment({ message, jid, pushName, group, mentioned, replyToBot, named, trigger, session, memoryJid }) {
   const quotedText = String(message?.reply_to_message?.text || message?.reply_to_message?.caption || '').trim();
   const environment = {
     type: group ? 'group' : 'dm',
@@ -62,6 +62,7 @@ function buildTelegramEnvironment({ message, jid, pushName, group, mentioned, re
     trigger: trigger || 'message',
     mentioned: Boolean(mentioned),
     replyToBot: Boolean(replyToBot),
+    named: Boolean(named),
     botName: appConfig.bot.name,
     speaker: {
       name: pushName || null,
@@ -99,6 +100,7 @@ function formatTelegramEnvironmentPrompt(environment, session) {
       'Chat environment: you are in a Telegram group, not a private chat.',
       environment.group?.name ? `Group name: ${environment.group.name}` : null,
       environment.speaker?.name ? `The current speaker is ${environment.speaker.name}.` : null,
+      environment.named ? 'They called you by name in this group. Reply to them.' : null,
       'Keep replies concise and natural for a group. Do not pretend this is a 1:1 DM.',
     ]
     : [
@@ -121,6 +123,7 @@ async function processTelegramMessage(bot, message, ctx) {
     group,
     mentioned,
     replyToBot,
+    named,
     trigger,
     hasImage,
   } = ctx;
@@ -136,6 +139,7 @@ async function processTelegramMessage(bot, message, ctx) {
     group,
     mentioned,
     replyToBot,
+    named,
     trigger,
     session,
     memoryJid,
@@ -264,7 +268,7 @@ export async function handleTelegramUpdate(bot, update) {
   const group = isTelegramGroup(message.chat);
   const pushName = displayName(message.from);
   const addressing = shouldReplyToTelegram(message, bot);
-  const { shouldReply, mentioned, replyToBot, trigger } = addressing;
+  const { shouldReply, mentioned, replyToBot, named, trigger } = addressing;
   const wrapped = wrapTelegramMessage(message, bot);
 
   try {
@@ -311,6 +315,7 @@ export async function handleTelegramUpdate(bot, update) {
         group,
         mentioned,
         replyToBot,
+        named,
         trigger,
         hasImage,
       }),

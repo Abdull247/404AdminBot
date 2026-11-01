@@ -70,6 +70,10 @@ Group chat:
 - `ignoreGroups: true` (default) means the bot does not answer every group message.
 - `respondToMentionsInGroups: true` answers when someone tags / @mentions the bot.
 - `respondToRepliesInGroups: true` answers when someone replies to the bot's own message.
+- `respondToNameMentionsInGroups: true` answers when the bot's name appears in the text without a tag or reply. It matches the configured name, its auto-derived aliases (like `404bot`, `404 bot`, or the numeric part of the name), and anything listed in `nameAliases`.
+- `deriveNameAliases: true` builds those aliases automatically from `bot.name`. Set it to `false` to match only `bot.name` and `nameAliases`.
+- `nameAliases: []` adds extra spellings to treat as a call, for example `["404bot", "404 bot", "error404"]`.
+- `nameCallPatterns: []` accepts extra case-insensitive regular expressions for full control.
 - Group replies quote the triggering message. The model receives group name, description, participant count, and who spoke.
 - `reactInGroups: true` lets the bot emoji-react to a tagged or quoted group message (funny, thanks, hype, greetings) and then still reply.
 
@@ -226,7 +230,7 @@ TELEGRAM_BOT_USERNAME=YourBot
 TELEGRAM_OWNER_IDS=123456789
 ```
 
-`telegram.json` controls prefix (`/`), group mention/reply behavior, typing, owners, and long-poll settings. Commands match WhatsApp: `/menu`, `/personalities`, `/reelix`, `/agent`, plus the link commands below. Groups stay quiet unless the bot is @mentioned or someone replies to it, same as WhatsApp.
+`telegram.json` controls prefix (`/`), group mention/reply behavior, typing, owners, and long-poll settings. Commands match WhatsApp: `/menu`, `/personalities`, `/reelix`, `/agent`, plus the link commands below. Groups stay quiet unless the bot is @mentioned, someone replies to it, or its name appears in the text (`respondToNameMentionsInGroups`), same as WhatsApp. `nameAliases` and `nameCallPatterns` come from `config.json`; the Telegram bot's own username and first name are also matched.
 
 ## Platform linking
 

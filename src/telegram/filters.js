@@ -1,5 +1,6 @@
 import { telegramConfig } from '../config/telegram.js';
 import { appConfig } from '../config/load-config.js';
+import { isBotCalledByName } from '../platforms/name-call.js';
 import { displayName, isTelegramGroup } from './ids.js';
 
 export function extractTelegramText(message) {
@@ -40,19 +41,42 @@ export function shouldReplyToTelegram(message, bot) {
   const group = isTelegramGroup(message?.chat);
   const mentioned = botMentioned(message, bot);
   const quoted = replyToBot(message, bot);
+  const named = group && isBotCalledByName(extractTelegramText(message), {
+    extraNames: [
+      String(bot?.username || telegramConfig.botUsername || '').replace(/^@/, ''),
+      String(bot?.first_name || ''),
+    ],
+  });
   if (!group) {
-    return { shouldReply: true, mentioned, replyToBot: quoted, trigger: 'message', group: false };
+    return { shouldReply: true, mentioned, replyToBot: quoted, named: false, trigger: 'message', group: false };
   }
   if (!telegramConfig.ignoreGroups) {
-    return { shouldReply: true, mentioned, replyToBot: quoted, trigger: mentioned ? 'mention' : 'message', group: true };
+    return {
+      shouldReply: true,
+      mentioned,
+      replyToBot: quoted,
+      named,
+      trigger: mentioned ? 'mention' : named ? 'name' : 'message',
+      group: true,
+    };
   }
   const mentionOk = mentioned && telegramConfig.respondToMentionsInGroups !== false;
   const replyOk = quoted && telegramConfig.respondToRepliesInGroups !== false;
+  const nameOk = named && telegramConfig.respondToNameMentionsInGroups !== false;
   return {
-    shouldReply: mentionOk || replyOk,
+    shouldReply: mentionOk || replyOk || nameOk,
     mentioned,
     replyToBot: quoted,
-    trigger: mentioned && quoted ? 'mention_and_reply' : mentioned ? 'mention' : quoted ? 'reply' : 'message',
+    named,
+    trigger: mentioned && quoted
+      ? 'mention_and_reply'
+      : mentioned
+        ? 'mention'
+        : quoted
+          ? 'reply'
+          : nameOk
+            ? 'name'
+            : 'message',
     group: true,
   };
 }
