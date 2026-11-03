@@ -1,0 +1,115 @@
+{
+  "defaultModel": "DeepSeek-V4-Flash",
+  "models": [
+    {
+      "id": "DeepSeek-V4-Flash",
+      "name": "DeepSeek V4 Flash",
+      "enabled": true,
+      "default": true,
+      "supportFallback": true,
+      "priority": 96,
+      "roles": ["chat", "persistence", "summarize"],
+      "support": {
+        "chat": true,
+        "tools": true,
+        "vision": false,
+        "streaming": true,
+        "json": true,
+        "persistence": true
+      },
+      "limits": {
+        "maxTokens": 8192,
+        "contextWindow": 128000,
+        "timeoutMs": 60000
+      }
+    },
+    {
+      "id": "glm-5.3-flash",
+      "name": "GLM 5.3 Flash",
+      "enabled": true,
+      "default": false,
+      "supportFallback": true,
+      "priority": 92,
+      "roles": ["chat", "persistence", "summarize"],
+      "support": {
+        "chat": true,
+        "tools": true,
+        "vision": false,
+        "streaming": true,
+        "json": true,
+        "persistence": true
+      },
+      "limits": {
+        "maxTokens": 8192,
+        "contextWindow": 128000,
+        "timeoutMs": 60000
+      }
+    },
+    {
+      "id": "MiniMax-M3.1-Flash",
+      "name": "MiniMax M3.1 Flash",
+      "enabled": true,
+      "default": false,
+      "supportFallback": true,
+      "priority": 90,
+      "roles": ["chat", "persistence"],
+      "support": {
+        "chat": true,
+        "tools": true,
+        "vision": false,
+        "streaming": true,
+        "json": true,
+        "persistence": true
+      },
+      "limits": {
+        "maxTokens": 8192,
+        "contextWindow": 128000,
+        "timeoutMs": 60000
+      }
+    },
+    {
+      "id": "DeepSeek-V4.1-Flash",
+      "name": "DeepSeek V4.1 Flash",
+      "enabled": false,
+      "default": false,
+      "supportFallback": true,
+      "priority": 80,
+      "roles": ["chat", "persistence"],
+      "support": {
+        "chat": true,
+        "tools": true,
+        "vision": false,
+        "streaming": true,
+        "json": true,
+        "persistence": true
+      },
+      "limits": {
+        "maxTokens": 8192,
+        "contextWindow": 128000,
+        "timeoutMs": 60000
+      }
+    },
+    {
+      "id": "DeepSeek-V4-Pro",
+      "name": "DeepSeek V4 Pro",
+      "enabled": false,
+      "default": false,
+      "supportFallback": false,
+      "priority": 40,
+      "roles": ["chat"],
+      "support": {
+        "chat": true,
+        "tools": true,
+        "vision": false,
+        "streaming": true,
+        "json": true,
+        "persistence": false
+      },
+      "limits": {
+        "maxTokens": 8192,
+        "contextWindow": 128000,
+        "timeoutMs": 90000
+      }
+    }
+  ]
+}

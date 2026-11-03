@@ -1,0 +1,17 @@
+{
+  "id": "kira",
+  "name": "Kira AI",
+  "enabled": true,
+  "default": false,
+  "priority": 85,
+  "kind": "openai-compatible",
+  "freeTier": true,
+  "baseUrl": {
+    "env": "KIRA_BASE_URL",
+    "required": false,
+    "value": "https://kiraai.vn/api/v1"
+  },
+  "apiKey": { "env": "KIRA_API_KEY", "required": true },
+  "timeoutMs": { "env": "KIRA_TIMEOUT_MS", "required": false },
+  "notes": "Kira Vietnam gateway. Catalog only includes models with is_free=true."
+}

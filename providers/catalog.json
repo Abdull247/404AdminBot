@@ -1,22 +1,22 @@
 {
   "version": 1,
-  "defaultProvider": "riverai",
+  "defaultProvider": "nvidia",
   "roles": {
     "chat": {
-      "provider": "riverai",
-      "model": "deepseek-v4.1-flash:free"
+      "provider": "nvidia",
+      "model": "mistralai/mistral-large-4-1t-a52b"
     },
     "persistence": {
-      "provider": "riverai",
-      "model": "deepseek-v4.1-flash:free"
+      "provider": "nvidia",
+      "model": "mistralai/mistral-large-4-1t-a52b"
     },
     "vision": {
-      "provider": "openrouter",
-      "model": "google/gemini-2.0-flash-exp:free"
+      "provider": "kira",
+      "model": "mimo-v2.6-flash-free"
     },
     "summarize": {
-      "provider": "groq",
-      "model": "llama-3.1-8b-instant"
+      "provider": "hcnsec",
+      "model": "glm-5.3-flash"
     }
   },
   "fallback": {

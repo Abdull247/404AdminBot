@@ -1,0 +1,17 @@
+{
+  "id": "agnes",
+  "name": "Agnes AI",
+  "enabled": true,
+  "default": false,
+  "priority": 90,
+  "kind": "openai-compatible",
+  "freeTier": true,
+  "baseUrl": {
+    "env": "AGNES_BASE_URL",
+    "required": false,
+    "value": "https://apihub.agnes-ai.com/v1"
+  },
+  "apiKey": { "env": "AGNES_API_KEY", "required": true },
+  "timeoutMs": { "env": "AGNES_TIMEOUT_MS", "required": false },
+  "notes": "Agnes API Hub. Enabled chat models: agnes-3.0-flash, agnes-2.5-flash."
+}

@@ -1,0 +1,17 @@
+{
+  "id": "hcnsec",
+  "name": "HCNSEC",
+  "enabled": true,
+  "default": false,
+  "priority": 95,
+  "kind": "openai-compatible",
+  "freeTier": true,
+  "baseUrl": {
+    "env": "HCNSEC_BASE_URL",
+    "required": false,
+    "value": "https://api.hcnsec.cn/v1"
+  },
+  "apiKey": { "env": "HCNSEC_API_KEY", "required": true },
+  "timeoutMs": { "env": "HCNSEC_TIMEOUT_MS", "required": false },
+  "notes": "OpenAI-compatible gateway. Enabled chat models: DeepSeek-V4-Flash, glm-5.3-flash, MiniMax-M3.1-Flash."
+}

@@ -55,7 +55,7 @@ src/
 
 Copy `.env.example` to `.env` and fill in:
 
-- Provider env vars named in `providers/<id>/provider.json` (`AI_BASE_URL` / `AI_API_KEY` for the default RiverAI provider). Extra keys such as `OPENROUTER_API_KEY`, `GROQ_API_KEY`, `GOOGLE_API_KEY` are optional fallbacks.
+- Provider env vars named in `providers/<id>/provider.json`. Default is NVIDIA (`NVIDIA_BASE_URL` / `NVIDIA_API_KEY`). Also set `HCNSEC_*`, `AGNES_*`, and `KIRA_*` for fallbacks. Extra keys such as `OPENROUTER_API_KEY`, `GROQ_API_KEY`, `GOOGLE_API_KEY` stay optional.
 - `DATABASE_URL`
 - `LANGSEARCH_API_KEY`
 - `TELEGRAM_BOT_TOKEN` (and optionally `TELEGRAM_ENABLED=true`) if you want Telegram as well as WhatsApp
@@ -112,12 +112,13 @@ Providers live in `providers/`, one folder per vendor. The catalog is built for 
 ```text
 providers/
   catalog.json
-  riverai/
+  nvidia/
     provider.json
     models/config.json
+  hcnsec/
+  agnes/
+  kira/
   openrouter/
-    provider.json
-    models/config.json
   groq/
   google/
   mistral/
@@ -142,7 +143,18 @@ Fallback order when a call fails (timeout, 429, 5xx, auth, empty choices):
 
 Providers without a required key are skipped. Failed models get a short cooldown (`cooldownMs`, longer for 429 / 401). Set `supportFallback: false` on a model to keep it out of the hop list. Both the main bot and the persistence agent use this chain.
 
-`ai.defaultModel` still picks the first chat model. Use `providerId/modelId` when two vendors share a name. Owner command `.models` prints the live catalog and fallback order.
+`ai.defaultModel` still picks the first chat model. NVIDIA is the default provider (`mistralai/mistral-large-4-1t-a52b`). Use `providerId/modelId` when two vendors share a name. Owner command `.models` prints the live catalog and fallback order.
+
+Probe enabled models without one-by-one tool calls:
+
+```bash
+# NVIDIA_API_KEY / HCNSEC_API_KEY / AGNES_API_KEY / KIRA_API_KEY must be set
+bash scripts/probe-nvidia.sh
+bash scripts/probe-hcnsec.sh
+bash scripts/probe-agnes.sh
+bash scripts/probe-kira.sh
+bash scripts/probe-providers.sh
+```
 
 ```json
 {
@@ -466,8 +478,8 @@ In Render > Environment, add the same keys as `.env.example`. Do not upload a `.
 Required:
 
 ```text
-AI_BASE_URL
-AI_API_KEY
+NVIDIA_BASE_URL
+NVIDIA_API_KEY
 DATABASE_URL
 ```
 

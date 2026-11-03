@@ -11,7 +11,12 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
-    "migrate": "node src/db/migrate.js"
+    "migrate": "node src/db/migrate.js",
+    "probe:hcnsec": "bash scripts/probe-hcnsec.sh",
+    "probe:agnes": "bash scripts/probe-agnes.sh",
+    "probe:nvidia": "bash scripts/probe-nvidia.sh",
+    "probe:kira": "bash scripts/probe-kira.sh",
+    "probe:providers": "bash scripts/probe-providers.sh"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1160.0",

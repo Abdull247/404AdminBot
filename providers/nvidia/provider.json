@@ -1,0 +1,17 @@
+{
+  "id": "nvidia",
+  "name": "NVIDIA NIM",
+  "enabled": true,
+  "default": true,
+  "priority": 100,
+  "kind": "openai-compatible",
+  "freeTier": true,
+  "baseUrl": {
+    "env": "NVIDIA_BASE_URL",
+    "required": false,
+    "value": "https://integrate.api.nvidia.com/v1"
+  },
+  "apiKey": { "env": "NVIDIA_API_KEY", "required": true },
+  "timeoutMs": { "env": "NVIDIA_TIMEOUT_MS", "required": false },
+  "notes": "NVIDIA Integrate API. Default chat model is mistralai/mistral-large-4-1t-a52b."
+}
