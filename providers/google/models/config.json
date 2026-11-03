@@ -1,11 +1,55 @@
 {
-  "defaultModel": "gemini-2.0-flash",
+  "defaultModel": "gemini-3.6-flash",
   "models": [
     {
-      "id": "gemini-2.0-flash",
-      "name": "Gemini 2.0 Flash",
+      "id": "gemini-3.6-flash",
+      "name": "Gemini 3.6 Flash",
       "enabled": true,
       "default": true,
+      "supportFallback": true,
+      "priority": 100,
+      "roles": ["chat", "vision", "summarize", "persistence"],
+      "support": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "streaming": true,
+        "json": true,
+        "persistence": true
+      },
+      "limits": {
+        "maxTokens": 65500,
+        "contextWindow": 1000000,
+        "timeoutMs": 60000
+      }
+    },
+    {
+      "id": "gemini-3.5-flash",
+      "name": "Gemini 3.5 Flash",
+      "enabled": true,
+      "default": false,
+      "supportFallback": true,
+      "priority": 95,
+      "roles": ["chat", "vision", "summarize"],
+      "support": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "streaming": true,
+        "json": true,
+        "persistence": false
+      },
+      "limits": {
+        "maxTokens": 65500,
+        "contextWindow": 1000000,
+        "timeoutMs": 60000
+      }
+    },
+    {
+      "id": "gemini-3-flash-preview",
+      "name": "Gemini 3 Flash Preview",
+      "enabled": true,
+      "default": false,
       "supportFallback": true,
       "priority": 90,
       "roles": ["chat", "vision", "summarize"],
@@ -18,18 +62,18 @@
         "persistence": false
       },
       "limits": {
-        "maxTokens": 8192,
+        "maxTokens": 65500,
         "contextWindow": 1000000,
         "timeoutMs": 60000
       }
     },
     {
-      "id": "gemini-2.0-flash-lite",
-      "name": "Gemini 2.0 Flash Lite",
+      "id": "gemini-3.5-flash-lite",
+      "name": "Gemini 3.5 Flash Lite",
       "enabled": true,
       "default": false,
       "supportFallback": true,
-      "priority": 84,
+      "priority": 85,
       "roles": ["chat", "summarize"],
       "support": {
         "chat": true,
@@ -40,31 +84,75 @@
         "persistence": false
       },
       "limits": {
-        "maxTokens": 8192,
+        "maxTokens": 65500,
         "contextWindow": 1000000,
         "timeoutMs": 45000
       }
     },
     {
-      "id": "gemini-2.5-flash",
-      "name": "Gemini 2.5 Flash",
+      "id": "gemini-3.1-flash-lite",
+      "name": "Gemini 3.1 Flash Lite",
       "enabled": true,
       "default": false,
       "supportFallback": true,
       "priority": 80,
-      "roles": ["chat", "vision", "persistence"],
+      "roles": ["chat", "summarize"],
       "support": {
         "chat": true,
         "tools": true,
         "vision": true,
         "streaming": true,
         "json": true,
-        "persistence": true
+        "persistence": false
       },
       "limits": {
-        "maxTokens": 8192,
+        "maxTokens": 65500,
         "contextWindow": 1000000,
-        "timeoutMs": 90000
+        "timeoutMs": 45000
+      }
+    },
+    {
+      "id": "gemini-3.1-flash-lite-preview",
+      "name": "Gemini 3.1 Flash Lite Preview",
+      "enabled": true,
+      "default": false,
+      "supportFallback": true,
+      "priority": 75,
+      "roles": ["chat", "summarize"],
+      "support": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "streaming": true,
+        "json": true,
+        "persistence": false
+      },
+      "limits": {
+        "maxTokens": 65500,
+        "contextWindow": 1000000,
+        "timeoutMs": 45000
+      }
+    },
+    {
+      "id": "gemma-4-26b-a4b-it",
+      "name": "Gemma 4 26B A4B IT",
+      "enabled": true,
+      "default": false,
+      "supportFallback": true,
+      "priority": 70,
+      "roles": ["chat", "vision"],
+      "support": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "streaming": true,
+        "json": true,
+        "persistence": false
+      },
+      "limits": {
+        "maxTokens": 32700,
+        "contextWindow": 262100,
+        "timeoutMs": 60000
       }
     }
   ]
