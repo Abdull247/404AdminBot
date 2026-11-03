@@ -1,5 +1,5 @@
 {
-  "defaultModel": "mistralai/mistral-large-4-1t-a52b",
+  "defaultModel": "poolside/laguna-xs-2.1",
   "models": [
     {
       "id": "mistralai/mistral-large-4-1t-a52b",
