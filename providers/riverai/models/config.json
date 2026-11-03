@@ -1,0 +1,27 @@
+{
+  "defaultModel": "deepseek-v4.1-flash:free",
+  "models": [
+    {
+      "id": "deepseek-v4.1-flash:free",
+      "name": "DeepSeek V4.1 Flash (free)",
+      "enabled": true,
+      "default": true,
+      "supportFallback": true,
+      "priority": 100,
+      "roles": ["chat", "persistence", "summarize"],
+      "support": {
+        "chat": true,
+        "tools": true,
+        "vision": false,
+        "streaming": false,
+        "json": true,
+        "persistence": true
+      },
+      "limits": {
+        "maxTokens": 4096,
+        "contextWindow": 64000,
+        "timeoutMs": 60000
+      }
+    }
+  ]
+}

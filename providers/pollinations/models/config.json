@@ -1,0 +1,49 @@
+{
+  "defaultModel": "openai",
+  "models": [
+    {
+      "id": "openai",
+      "name": "Pollinations OpenAI",
+      "enabled": true,
+      "default": true,
+      "supportFallback": true,
+      "priority": 30,
+      "roles": ["chat"],
+      "support": {
+        "chat": true,
+        "tools": false,
+        "vision": false,
+        "streaming": false,
+        "json": false,
+        "persistence": false
+      },
+      "limits": {
+        "maxTokens": 2048,
+        "contextWindow": 16000,
+        "timeoutMs": 45000
+      }
+    },
+    {
+      "id": "openai-fast",
+      "name": "Pollinations OpenAI Fast",
+      "enabled": true,
+      "default": false,
+      "supportFallback": true,
+      "priority": 25,
+      "roles": ["chat", "summarize"],
+      "support": {
+        "chat": true,
+        "tools": false,
+        "vision": false,
+        "streaming": false,
+        "json": false,
+        "persistence": false
+      },
+      "limits": {
+        "maxTokens": 2048,
+        "contextWindow": 16000,
+        "timeoutMs": 30000
+      }
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "id": "openrouter",
+  "name": "OpenRouter",
+  "enabled": true,
+  "default": false,
+  "priority": 90,
+  "kind": "openai-compatible",
+  "freeTier": true,
+  "baseUrl": {
+    "env": "OPENROUTER_BASE_URL",
+    "required": false,
+    "value": "https://openrouter.ai/api/v1"
+  },
+  "apiKey": { "env": "OPENROUTER_API_KEY", "required": true },
+  "timeoutMs": { "env": "OPENROUTER_TIMEOUT_MS", "required": false },
+  "headers": {
+    "HTTP-Referer": { "env": "OPENROUTER_SITE_URL", "required": false },
+    "X-Title": { "env": "OPENROUTER_APP_NAME", "required": false, "value": "Jen404" }
+  },
+  "notes": "Aggregates many free-tier models. Rate limits are common; leave supportFallback on."
+}

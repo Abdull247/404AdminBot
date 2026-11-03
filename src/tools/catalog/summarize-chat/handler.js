@@ -91,6 +91,7 @@ async function aiSummarize({ chat, lines, focus, facts }) {
   ].join('\n');
 
   const completion = await createChatCompletion({
+    role: 'summarize',
     messages: [
       {
         role: 'system',

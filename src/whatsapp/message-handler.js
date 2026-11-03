@@ -4,7 +4,7 @@ import { generateReply } from '../ai/agent.js';
 import { tryHandleCommand } from '../commands/index.js';
 import { rememberUser } from '../memory/store.js';
 import { logger } from '../utils/logger.js';
-import { getAiRuntime } from '../config/providers.js';
+import { getAiRuntime, providerHasVision } from '../config/providers.js';
 import { extractText, isGroupJid, isNewsletterJid, isStatusJid, shouldIgnore, stripBotMention } from './filters.js';
 import { downloadImageAttachment, hasImageMessage } from './media.js';
 import {
@@ -184,7 +184,7 @@ async function processAddressedMessage(sock, message, ctx) {
         })
       : null;
     let image = null;
-    const vision = getAiRuntime().imageSupport;
+    const vision = getAiRuntime().imageSupport || providerHasVision();
     if (commandReply == null && hasImage && vision) {
       try {
         image = await downloadImageAttachment(sock, message);

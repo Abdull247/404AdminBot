@@ -1,6 +1,6 @@
 import { env } from './env.js';
 import { appConfig } from './load-config.js';
-import { findModel, getAiRuntime, resolveProviderRuntime } from './providers.js';
+import { getAiRuntime } from './providers.js';
 import { getPersistenceSandbox, hasPersistenceSandbox } from './sandboxes.js';
 
 function intOr(value, fallback) {
@@ -44,10 +44,7 @@ export function persistenceFeatureEnabled() {
 
 export function getPersistenceRuntime() {
   const config = getPersistenceConfig();
-  const match = findModel(config.defaultModel);
-  const runtime = match
-    ? resolveProviderRuntime(match.provider, match.model)
-    : getAiRuntime();
+  const runtime = getAiRuntime(config.defaultModel, { role: 'persistence', tools: true });
   return {
     ...runtime,
     timeoutMs: Math.max(runtime.timeoutMs || 0, config.timeoutMs),

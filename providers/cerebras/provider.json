@@ -1,0 +1,17 @@
+{
+  "id": "cerebras",
+  "name": "Cerebras",
+  "enabled": true,
+  "default": false,
+  "priority": 45,
+  "kind": "openai-compatible",
+  "freeTier": true,
+  "baseUrl": {
+    "env": "CEREBRAS_BASE_URL",
+    "required": false,
+    "value": "https://api.cerebras.ai/v1"
+  },
+  "apiKey": { "env": "CEREBRAS_API_KEY", "required": true },
+  "timeoutMs": { "env": "CEREBRAS_TIMEOUT_MS", "required": false },
+  "notes": "Very fast inference on the free tier. Good last-hop chat fallback."
+}

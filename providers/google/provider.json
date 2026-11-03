@@ -1,0 +1,17 @@
+{
+  "id": "google",
+  "name": "Google Gemini",
+  "enabled": true,
+  "default": false,
+  "priority": 70,
+  "kind": "openai-compatible",
+  "freeTier": true,
+  "baseUrl": {
+    "env": "GOOGLE_BASE_URL",
+    "required": false,
+    "value": "https://generativelanguage.googleapis.com/v1beta/openai"
+  },
+  "apiKey": { "env": "GOOGLE_API_KEY", "required": true },
+  "timeoutMs": { "env": "GOOGLE_TIMEOUT_MS", "required": false },
+  "notes": "Gemini OpenAI-compatible endpoint. Strong vision and long context on the free tier."
+}

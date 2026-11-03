@@ -1,0 +1,17 @@
+{
+  "id": "mistral",
+  "name": "Mistral",
+  "enabled": true,
+  "default": false,
+  "priority": 60,
+  "kind": "openai-compatible",
+  "freeTier": true,
+  "baseUrl": {
+    "env": "MISTRAL_BASE_URL",
+    "required": false,
+    "value": "https://api.mistral.ai/v1"
+  },
+  "apiKey": { "env": "MISTRAL_API_KEY", "required": true },
+  "timeoutMs": { "env": "MISTRAL_TIMEOUT_MS", "required": false },
+  "notes": "Mistral cloud. Small and Nemo models are usable on the free experiment tier."
+}

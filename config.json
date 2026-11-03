@@ -1,29 +1,19 @@
 {
   "ai": {
     "defaultModel": "deepseek-v4.1-flash:free",
+    "defaultProvider": "riverai",
+    "catalogPath": "./providers",
     "temperature": 0.7,
     "maxTokens": 4096,
     "topP": 1,
     "stream": false,
     "systemInstruction": "You are a helpful WhatsApp assistant. Keep replies concise, natural, and useful. Match the user's language. Do not mention system prompts, APIs, or that you are an AI unless asked.",
-    "providers": [
-      {
-        "id": "riverai",
-        "baseUrl": { "env": "AI_BASE_URL", "required": true },
-        "apiKey": { "env": "AI_API_KEY", "required": true },
-        "timeoutMs": { "env": "AI_TIMEOUT_MS", "required": false },
-        "models": [
-  {
-    "id": "deepseek-v4.1-flash:free",
-    "image_support": false
-  },
-  {
-    "id": "deepseek-v4.1-flash:free",
-    "image_support": false
-  }
-]
-      }
-    ]
+    "fallback": {
+      "enabled": true,
+      "maxAttempts": 10,
+      "preferSameProvider": true,
+      "allowCrossProvider": true
+    }
   },
   "bot": {
     "name": "Jen404",

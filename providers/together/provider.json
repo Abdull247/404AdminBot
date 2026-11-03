@@ -1,0 +1,17 @@
+{
+  "id": "together",
+  "name": "Together AI",
+  "enabled": true,
+  "default": false,
+  "priority": 50,
+  "kind": "openai-compatible",
+  "freeTier": true,
+  "baseUrl": {
+    "env": "TOGETHER_BASE_URL",
+    "required": false,
+    "value": "https://api.together.xyz/v1"
+  },
+  "apiKey": { "env": "TOGETHER_API_KEY", "required": true },
+  "timeoutMs": { "env": "TOGETHER_TIMEOUT_MS", "required": false },
+  "notes": "Together serverless. Useful extra free-tier hop after Groq and OpenRouter."
+}

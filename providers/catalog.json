@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "defaultProvider": "riverai",
+  "roles": {
+    "chat": {
+      "provider": "riverai",
+      "model": "deepseek-v4.1-flash:free"
+    },
+    "persistence": {
+      "provider": "riverai",
+      "model": "deepseek-v4.1-flash:free"
+    },
+    "vision": {
+      "provider": "openrouter",
+      "model": "google/gemini-2.0-flash-exp:free"
+    },
+    "summarize": {
+      "provider": "groq",
+      "model": "llama-3.1-8b-instant"
+    }
+  },
+  "fallback": {
+    "enabled": true,
+    "maxAttempts": 10,
+    "cooldownMs": 20000,
+    "rateLimitCooldownMs": 60000,
+    "authCooldownMs": 300000,
+    "skipMissingKeys": true,
+    "preferSameProvider": true,
+    "allowCrossProvider": true
+  }
+}

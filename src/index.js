@@ -1,6 +1,6 @@
 import { ensureSessionDir, ensureToolsOutputDir, env } from './config/env.js';
 import { appConfig } from './config/load-config.js';
-import { getAiRuntime } from './config/providers.js';
+import { describeCatalog, getAiRuntime } from './config/providers.js';
 import { getPersistenceConfig, persistenceFeatureEnabled } from './config/persistence.js';
 import { getDefaultSandbox } from './config/sandboxes.js';
 import { listStickers } from './config/stickers.js';
@@ -27,6 +27,7 @@ async function main() {
   loadCommands();
   const personalities = loadPersonalities();
   const runtime = getAiRuntime();
+  const catalog = describeCatalog();
   const sandbox = getDefaultSandbox();
   const persistence = getPersistenceConfig();
   logger.info(
@@ -34,6 +35,11 @@ async function main() {
       provider: runtime.providerId,
       model: runtime.modelId,
       imageSupport: runtime.imageSupport,
+      catalog: {
+        defaultProvider: catalog.defaultProvider,
+        providers: catalog.providers.length,
+        fallback: catalog.fallback.enabled,
+      },
       sandbox: sandbox ? { id: sandbox.id, type: sandbox.type, tool: sandbox.tool, supportsPersistenceAgent: sandbox.supportsPersistenceAgent } : null,
       persistenceAgent: {
         enabled: persistenceFeatureEnabled(),

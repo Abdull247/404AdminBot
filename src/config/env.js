@@ -81,6 +81,7 @@ export const env = {
   WHATSAPP_MAX_STALE_MS: optionalIntWithDefaultMs('WHATSAPP_MAX_STALE_MS', 10 * 60 * 1000),
   LOG_LEVEL: optional('LOG_LEVEL', 'info'),
   CONFIG_PATH: path.resolve(rootDir, optional('CONFIG_PATH', './config.json')),
+  PROVIDERS_PATH: path.resolve(rootDir, optional('PROVIDERS_PATH', './providers')),
   SANDBOXES_PATH: path.resolve(rootDir, optional('SANDBOXES_PATH', './sandboxes.json')),
   STICKERS_PATH: path.resolve(rootDir, optional('STICKERS_PATH', './stickers/config.json')),
   TOOLS_OUTPUT_DIR: path.resolve(rootDir, optional('TOOLS_OUTPUT_DIR', './generated')),

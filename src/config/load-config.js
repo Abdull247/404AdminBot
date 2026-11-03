@@ -10,6 +10,14 @@ const defaults = {
     topP: 1,
     stream: false,
     systemInstruction: 'You are a helpful WhatsApp assistant.',
+    catalogPath: './providers',
+    defaultProvider: '',
+    fallback: {
+      enabled: true,
+      maxAttempts: 10,
+      preferSameProvider: true,
+      allowCrossProvider: true,
+    },
     providers: [],
   },
   bot: {

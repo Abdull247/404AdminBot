@@ -6,6 +6,7 @@ Node.js WhatsApp and Telegram bot using Baileys, the Telegram Bot API, an OpenAI
 
 ```text
 config.json
+providers/
 telegram.json
 platform-link.json
 cloudflare.json
@@ -30,7 +31,8 @@ src/
   whatsapp/
 ```
 
-- `config.json` holds AI providers and models, the default model, system instruction, bot behavior, and memory settings.
+- `config.json` holds the default model, fallback policy, system instruction, bot behavior, and memory settings.
+- `providers/` holds one folder per AI provider (`provider.json` plus `models/config.json`). `providers/catalog.json` picks the default provider, role routing, and fallback policy.
 - `telegram.json` holds Telegram bot behavior, `/` command prefix, polling, owners, and token env refs. Leave `TELEGRAM_BOT_TOKEN` empty to run WhatsApp only.
 - `platform-link.json` holds WhatsApp/Telegram handshake settings: command names, code length/charset, token TTL, and one-time session expiry.
 - `src/telegram/` talks to Telegram (polling, send, media, reactions). `src/platforms/` stores link tokens and shared sessions.
@@ -53,7 +55,7 @@ src/
 
 Copy `.env.example` to `.env` and fill in:
 
-- Provider env vars named in `config.json` (`AI_BASE_URL` / `AI_API_KEY` for the bundled OpenRouter provider)
+- Provider env vars named in `providers/<id>/provider.json` (`AI_BASE_URL` / `AI_API_KEY` for the default RiverAI provider). Extra keys such as `OPENROUTER_API_KEY`, `GROQ_API_KEY`, `GOOGLE_API_KEY` are optional fallbacks.
 - `DATABASE_URL`
 - `LANGSEARCH_API_KEY`
 - `TELEGRAM_BOT_TOKEN` (and optionally `TELEGRAM_ENABLED=true`) if you want Telegram as well as WhatsApp
@@ -63,7 +65,7 @@ Copy `.env.example` to `.env` and fill in:
 - `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_ENDPOINT` (persistent file storage)
 - `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` (image generation)
 
-Edit `config.json` for providers, default model, temperature, and system instruction. Edit `sandboxes.json` to choose the active Linux backend.
+Edit `config.json` for default model, temperature, and system instruction. Add or toggle providers under `providers/`. Edit `sandboxes.json` to choose the active Linux backend.
 
 Group chat:
 
@@ -105,36 +107,71 @@ Use digits only, including country code. Then start the bot and enter the printe
 
 ## AI providers
 
-`config.json` can list more than one OpenAI-compatible provider. Each provider has its own models array. `ai.defaultModel` picks which model to call. Env var names live on the provider (`baseUrl.env`, `apiKey.env`). Set `"required": false` on `apiKey` when the server needs no key.
+Providers live in `providers/`, one folder per vendor. The catalog is built for free-tier keys: missing keys are skipped, rate-limited models cool down, and chat plus the persistence agent walk the same fallback chain.
+
+```text
+providers/
+  catalog.json
+  riverai/
+    provider.json
+    models/config.json
+  openrouter/
+    provider.json
+    models/config.json
+  groq/
+  google/
+  mistral/
+  deepseek/
+  together/
+  cerebras/
+  pollinations/
+```
+
+`providers/catalog.json` picks the default provider, role routing (`chat`, `persistence`, `vision`, `summarize`), and fallback policy. `config.json` still holds `ai.defaultModel` and can override `ai.fallback`.
+
+Each provider folder:
+
+- `provider.json` has `id`, `enabled`, `default`, `priority`, `freeTier`, and env specs for `baseUrl` / `apiKey` / `timeoutMs`.
+- `models/config.json` lists every model with `enabled` (on/off), `supportFallback`, roles, and a `support` object (`chat`, `tools`, `vision`, `streaming`, `json`, `persistence`).
+
+Fallback order when a call fails (timeout, 429, 5xx, auth, empty choices):
+
+1. Other `supportFallback: true` models on the same provider, by `priority`
+2. The next ready provider, using that provider's fallback models
+3. Stop after `fallback.maxAttempts` (default 10)
+
+Providers without a required key are skipped. Failed models get a short cooldown (`cooldownMs`, longer for 429 / 401). Set `supportFallback: false` on a model to keep it out of the hop list. Both the main bot and the persistence agent use this chain.
+
+`ai.defaultModel` still picks the first chat model. Use `providerId/modelId` when two vendors share a name. Owner command `.models` prints the live catalog and fallback order.
 
 ```json
 {
-  "ai": {
-    "defaultModel": "gpt-4o-mini",
-    "providers": [
-      {
-        "id": "openai",
-        "baseUrl": { "env": "OPENAI_BASE_URL", "required": true },
-        "apiKey": { "env": "OPENAI_API_KEY", "required": true },
-        "models": [
-          { "id": "gpt-4o-mini", "image_support": true },
-          { "id": "gpt-4o", "image_support": true }
-        ]
-      },
-      {
-        "id": "local",
-        "baseUrl": { "env": "LOCAL_AI_BASE_URL", "required": true },
-        "apiKey": { "env": "LOCAL_AI_API_KEY", "required": false },
-        "models": [
-          { "id": "llama3", "image_support": false }
-        ]
-      }
-    ]
+  "id": "openrouter",
+  "enabled": true,
+  "priority": 90,
+  "baseUrl": { "env": "OPENROUTER_BASE_URL", "required": false, "value": "https://openrouter.ai/api/v1" },
+  "apiKey": { "env": "OPENROUTER_API_KEY", "required": true }
+}
+```
+
+```json
+{
+  "id": "google/gemini-2.0-flash-exp:free",
+  "enabled": true,
+  "supportFallback": true,
+  "roles": ["vision", "chat"],
+  "support": {
+    "chat": true,
+    "tools": true,
+    "vision": true,
+    "streaming": true,
+    "json": true,
+    "persistence": false
   }
 }
 ```
 
-Set `image_support` (also accepts `image_surport`) to `true` on a model so WhatsApp image attachments are downloaded and sent in the chat request as a vision `image_url` part.
+Set `support.vision` (also accepts `image_support` / `image_surport`) to `true` so WhatsApp image attachments are downloaded and sent as a vision `image_url` part. If the current chat model has no vision, fallback can hop to a vision model.
 
 ## Tools
 
@@ -291,7 +328,7 @@ The `create_agent` tool is exposed only when:
 
 `maxConcurrent` is a hard cap on *running* persistent agents (default `1`). When the bot calls `create_agent` while that cap is full, it does not start a second instance. It replies with the running job id, status, task, progress, and the same check/logs commands the user would get from a new job.
 
-`defaultModel` uses the same provider catalog as the main bot. If that model has `image_support: true`, the persistence agent can inspect attached images through `read_attachment`.
+`defaultModel` uses the same `providers/` catalog as the main bot, including fallback. Role `persistence` prefers models with `support.persistence` or `roles: ["persistence"]`. If the chosen model has `support.vision`, the persistence agent can inspect attached images through `read_attachment`.
 
 Incoming WhatsApp messages are queued per chat and fairly across chats (`bot.queue` in `config.json`). Up to `maxConcurrentChats` conversations generate replies at once; extra people are told they are waiting instead of colliding. Each chat still runs one request at a time so history stays in order.
 

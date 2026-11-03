@@ -1,5 +1,5 @@
 import { appConfig } from '../config/load-config.js';
-import { getAiRuntime } from '../config/providers.js';
+import { getAiRuntime, providerHasVision } from '../config/providers.js';
 import { getChatSettings } from '../db/repositories/settings.js';
 import { loadContext, saveTurn } from '../memory/store.js';
 import { findPersonality, formatPersonalityPrompt, getDefaultPersonality } from '../personalities/load.js';
@@ -157,8 +157,8 @@ export async function generateReply({
   const owner = sock?.platform === 'telegram'
     ? isTelegramOwner(message)
     : isOwnerJid(jid, sock);
-  const runtime = getAiRuntime();
-  const visionImage = runtime.imageSupport ? image : null;
+  let runtime = getAiRuntime(undefined, { role: image ? 'vision' : 'chat' });
+  const visionImage = (runtime.imageSupport || providerHasVision()) ? image : null;
   const messages = buildMessages({
     userText: text,
     history: historyForPrompt,
@@ -238,7 +238,10 @@ export async function generateReply({
           toolChoice,
           temperature: personality?.temperature,
           runtime,
+          role: visionImage ? 'vision' : 'chat',
+          image: visionImage,
         });
+        if (completion?._runtime) runtime = completion._runtime;
       } catch (error) {
         lastError = error;
         logger.error({ err: error, jid, round }, 'chat completion failed');
@@ -249,7 +252,10 @@ export async function generateReply({
               tools: greeting ? tools : undefined,
               temperature: personality?.temperature,
               runtime,
+              role: visionImage ? 'vision' : 'chat',
+              image: visionImage,
             });
+            if (completion?._runtime) runtime = completion._runtime;
             lastError = null;
           } catch (retryError) {
             lastError = retryError;

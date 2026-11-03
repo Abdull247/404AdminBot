@@ -2,6 +2,7 @@ import { getPersistenceConfig, persistenceFeatureEnabled } from '../config/persi
 import { platformLinkEnabled } from '../config/platform-link.js';
 import { logger } from '../utils/logger.js';
 import { handleMenu } from './menu.js';
+import { handleModels } from './models.js';
 import { parseCommand } from './parse.js';
 import { handlePersistence } from './persistence.js';
 import { handlePersonalities } from './personalities.js';
@@ -21,6 +22,13 @@ function loadCommands() {
     usage: '.menu  |  /menu',
     description: 'List all available commands.',
     handler: handleMenu,
+  });
+  registerCommand({
+    name: 'models',
+    aliases: ['providers', 'ai', 'llm'],
+    usage: '.models  |  /models',
+    description: 'Show configured AI providers, models, support flags, and fallback order. Owner only.',
+    handler: handleModels,
   });
   registerCommand({
     name: 'personalities',

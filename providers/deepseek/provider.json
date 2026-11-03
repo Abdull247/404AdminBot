@@ -1,0 +1,17 @@
+{
+  "id": "deepseek",
+  "name": "DeepSeek",
+  "enabled": true,
+  "default": false,
+  "priority": 55,
+  "kind": "openai-compatible",
+  "freeTier": false,
+  "baseUrl": {
+    "env": "DEEPSEEK_BASE_URL",
+    "required": false,
+    "value": "https://api.deepseek.com/v1"
+  },
+  "apiKey": { "env": "DEEPSEEK_API_KEY", "required": true },
+  "timeoutMs": { "env": "DEEPSEEK_TIMEOUT_MS", "required": false },
+  "notes": "Official DeepSeek API. Cheap paid fallback when free aggregators are exhausted."
+}

@@ -52,7 +52,7 @@ function userPrompt(job, files) {
 
 export async function executePersistenceJob(job, { workerId, shouldStop } = {}) {
   const config = getPersistenceConfig();
-  const runtime = getPersistenceRuntime();
+  let runtime = getPersistenceRuntime();
   const box = persistenceSandbox();
   let sandbox = null;
   try {
@@ -150,7 +150,9 @@ export async function executePersistenceJob(job, { workerId, shouldStop } = {}) 
         runtime,
         maxTokens: config.maxTokens,
         topP: config.topP,
+        role: 'persistence',
       });
+      if (completion?._runtime) runtime = completion._runtime;
       lastMessage = completion?.choices?.[0]?.message || null;
       if (!lastMessage) break;
 

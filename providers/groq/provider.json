@@ -1,0 +1,17 @@
+{
+  "id": "groq",
+  "name": "Groq",
+  "enabled": true,
+  "default": false,
+  "priority": 80,
+  "kind": "openai-compatible",
+  "freeTier": true,
+  "baseUrl": {
+    "env": "GROQ_BASE_URL",
+    "required": false,
+    "value": "https://api.groq.com/openai/v1"
+  },
+  "apiKey": { "env": "GROQ_API_KEY", "required": true },
+  "timeoutMs": { "env": "GROQ_TIMEOUT_MS", "required": false },
+  "notes": "Very fast free-tier OpenAI-compatible API. Good summarize and chat fallback."
+}

@@ -1,0 +1,17 @@
+{
+  "id": "pollinations",
+  "name": "Pollinations",
+  "enabled": true,
+  "default": false,
+  "priority": 20,
+  "kind": "openai-compatible",
+  "freeTier": true,
+  "baseUrl": {
+    "env": "POLLINATIONS_BASE_URL",
+    "required": false,
+    "value": "https://text.pollinations.ai/openai"
+  },
+  "apiKey": { "env": "POLLINATIONS_API_KEY", "required": false },
+  "timeoutMs": { "env": "POLLINATIONS_TIMEOUT_MS", "required": false },
+  "notes": "Keyless public OpenAI-compatible endpoint. Last-resort chat fallback only."
+}

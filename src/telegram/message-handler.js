@@ -4,7 +4,7 @@ import { generateReply } from '../ai/agent.js';
 import { tryHandleCommand } from '../commands/index.js';
 import { rememberUser } from '../memory/store.js';
 import { logger } from '../utils/logger.js';
-import { getAiRuntime } from '../config/providers.js';
+import { getAiRuntime, providerHasVision } from '../config/providers.js';
 import { pickGroupReaction } from '../whatsapp/react.js';
 import { enqueueChatWork } from '../whatsapp/request-queue.js';
 import { addMessage } from '../db/repositories/conversations.js';
@@ -200,7 +200,7 @@ async function processTelegramMessage(bot, message, ctx) {
     : null;
 
   let image = null;
-  const vision = getAiRuntime().imageSupport;
+  const vision = getAiRuntime().imageSupport || providerHasVision();
   if (commandReply == null && hasImage && vision) {
     image = await downloadTelegramImage(message);
   }
