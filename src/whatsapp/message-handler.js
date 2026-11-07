@@ -23,6 +23,7 @@ import { enqueueChatWork } from './request-queue.js';
 import { sendArtifacts } from './send.js';
 import { toWhatsAppText } from './markdown.js';
 import { WHATSAPP } from '../platforms/ids.js';
+import { isLockdownAllowed, restrictAccessEnabled } from './reelix-gate.js';
 import {
   linkedEnvironmentNotes,
   resolveLinkedSession,
@@ -242,6 +243,10 @@ export async function handleIncomingMessage(sock, message) {
   if (!jid) return;
   if (isNewsletterJid(jid)) return;
   if (appConfig.bot.ignoreStatus && isStatusJid(jid)) return;
+  if (restrictAccessEnabled() && !isLockdownAllowed({ jid, message })) {
+    logger.debug({ jid }, 'ignored WhatsApp message outside Reelix lockdown');
+    return;
+  }
 
   const text = extractText(message);
   const hasImage = hasImageMessage(message);

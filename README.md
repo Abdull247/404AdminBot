@@ -383,7 +383,7 @@ Two supported service types. Both run the same code; the bot switches modes from
 
 Set the environment variable `PORT` (Render injects it automatically, but you can also pin it). The bot then:
 
-- starts a tiny HTTP server on `$PORT` serving `GET /`, `/health`, and `/ping` with JSON status (`whatsapp` connection state and `jid` included);
+- starts a tiny HTTP server on `$PORT` serving `GET /`, `/health`, and `/ping` with JSON status (`whatsapp` connection state and `jid` included), plus `POST /reelix/send` for the Reelix group notify;
 - defaults `WHATSAPP_AUTH_STORE=postgres`, so the WhatsApp session lives in Neon instead of the ephemeral disk and survives deploys and restarts.
 
 Free web services sleep after ~15 minutes of no inbound HTTP. The WhatsApp socket does not count as activity, so it is strongest to keep a free pinger (UptimeRobot, cron-job.org, etc.) hitting `/health` every 5-10 minutes.
@@ -542,6 +542,18 @@ INSTABOX_MACHINE_ID=
 WHATSAPP_MAX_STALE_MS=600000
 ```
 
+Reelix streaming group (WhatsApp):
+
+```text
+REELIX_GROUP_JID=120363XXXXXXXXXX@g.us
+REELIX_RESTRICT_ACCESS=true
+REELIX_SEND_KEY=
+REELIX_ADMIN_NUMBERS=2348012345678
+OWNER_NUMBERS=2348012345678
+```
+
+`REELIX_GROUP_JID` is the WhatsApp group the scheduler posts new titles into (digits`@g.us`, or just the numeric id). `REELIX_RESTRICT_ACCESS=true` makes the bot answer only that group plus owner/admin DMs (`OWNER_NUMBERS` / `REELIX_ADMIN_NUMBERS`); Telegram only answers `TELEGRAM_OWNER_IDS`. `REELIX_SEND_KEY` authenticates `POST /reelix/send`.
+
 `WHATSAPP_MAX_STALE_MS` drops messages older than this many milliseconds (default 10 minutes). Raise it if a sleeping free-tier host wakes up and you still want it to answer the backlog; lower it if the bot replies to very old group chatter.
 
 `config.json` is in the repo, so model/personality settings deploy with git. Secrets stay in Render env vars.
@@ -569,5 +581,6 @@ Do not use QR login on Render unless you can read the ASCII QR in logs. Pairing 
 - Migrations run on startup (`runMigrations` in `src/index.js`). You do not need a separate migrate step. This includes `004_whatsapp_auth.sql`, which creates the `whatsapp_auth` table for the Postgres session store.
 - Scale to **1 instance**. Two instances with the same session will fight over the WhatsApp link.
 - Health check: `GET /health` (or `/ping`) returns `{"ok":true,"whatsapp":"open","jid":"...","uptime":...}` when connected.
+- Reelix group send: `POST /reelix/send` (alias `/reelix/notify`) with `X-Reelix-Send-Key`. Body is `{ kind, newCount, items: [{ subjectId, title, coverUrl, description, ... }], text?, coverUrl?, jid? }`. The bot composes a structured WhatsApp message (cover + name + details) and sends it to `REELIX_GROUP_JID`. No AI chat call. Admins can also trigger this through the proxy `POST /admin/bot/send`.
 - Worker mode: if the bot stops answering, check logs for disconnects, then confirm the persistent disk still has `/data/session`.
 - Web Service mode: the session is in Neon, so a lost link is not about disk. To relink, clear the `whatsapp_auth` rows (or set `WHATSAPP_AUTH_STORE=file` locally) and restart. A new pairing code will print in logs.

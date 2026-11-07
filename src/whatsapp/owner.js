@@ -12,6 +12,10 @@ function ownerNumbers() {
   return [...new Set([...fromConfig, ...fromEnv, ...fallback].map(digits).filter(Boolean))];
 }
 
+export function listOwnerNumbers() {
+  return ownerNumbers();
+}
+
 export { phoneFromJid, samePhone } from './phone.js';
 
 export function isOwnerJid(jid, sock = null) {
