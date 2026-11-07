@@ -16,7 +16,8 @@
     "probe:agnes": "bash scripts/probe-agnes.sh",
     "probe:nvidia": "bash scripts/probe-nvidia.sh",
     "probe:kira": "bash scripts/probe-kira.sh",
-    "probe:providers": "bash scripts/probe-providers.sh"
+    "probe:providers": "bash scripts/probe-providers.sh",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1160.0",
@@ -25,8 +26,9 @@
     "@hapi/boom": "^10.0.1",
     "@insforge/instabox-sdk": "^0.5.3",
     "@neondatabase/serverless": "^0.10.4",
-    "@whiskeysockets/baileys": "7.0.0-rc14",
+    "@whiskeysockets/baileys": "npm:@qadeer-xtech/stablebail@1.0.2",
     "dotenv": "^16.4.7",
+    "patch-package": "^8.0.1",
     "pino": "^9.6.0",
     "qrcode-terminal": "^0.12.0",
     "sharp": "^0.34.4"
