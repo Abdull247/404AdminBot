@@ -552,7 +552,7 @@ REELIX_ADMIN_NUMBERS=2348012345678
 OWNER_NUMBERS=2348012345678
 ```
 
-`REELIX_GROUP_JID` is the WhatsApp group the scheduler posts new titles into (digits`@g.us`, or just the numeric id). `REELIX_RESTRICT_ACCESS=true` makes the bot answer only that group plus owner/admin DMs (`OWNER_NUMBERS` / `REELIX_ADMIN_NUMBERS`); Telegram only answers `TELEGRAM_OWNER_IDS`. `REELIX_SEND_KEY` authenticates `POST /reelix/send`.
+`REELIX_GROUP_JID` is the WhatsApp group the scheduler posts new titles into (digits`@g.us`, or just the numeric id). On connect the bot logs every group it is in as `WhatsApp group "<name>" jid=...@g.us`; copy that `jid` here. A message in a not-yet-listed group also prints the same line once. `REELIX_RESTRICT_ACCESS=true` makes the bot answer only that group plus owner/admin DMs (`OWNER_NUMBERS` / `REELIX_ADMIN_NUMBERS`); Telegram only answers `TELEGRAM_OWNER_IDS`. `REELIX_SEND_KEY` authenticates `POST /reelix/send`.
 
 `WHATSAPP_MAX_STALE_MS` drops messages older than this many milliseconds (default 10 minutes). Raise it if a sleeping free-tier host wakes up and you still want it to answer the backlog; lower it if the bot replies to very old group chatter.
 
