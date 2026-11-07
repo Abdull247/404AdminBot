@@ -1,7 +1,14 @@
 import { logger } from '../utils/logger.js';
 import { authorizeSend, readJsonBody, sendKeyConfigured } from './auth.js';
 import { sendReelixGroupMessage } from '../reelix/notify.js';
-import { reelixGroupJid, restrictAccessEnabled } from '../whatsapp/reelix-gate.js';
+import {
+  reelixChannelEnabled,
+  reelixChannelInviteCode,
+  reelixChannelJid,
+  reelixGroupEnabled,
+  reelixGroupJid,
+  restrictAccessEnabled,
+} from '../whatsapp/reelix-gate.js';
 
 export async function handleReelixSend(req, res, json) {
   const auth = authorizeSend(req);
@@ -25,7 +32,11 @@ export async function handleReelixSend(req, res, json) {
 export function reelixHealthExtras() {
   return {
     reelix: {
+      groupEnabled: reelixGroupEnabled(),
       groupJid: reelixGroupJid() || null,
+      channelEnabled: reelixChannelEnabled(),
+      channelJid: reelixChannelJid() || null,
+      channelInvite: reelixChannelInviteCode() || null,
       restrictAccess: restrictAccessEnabled(),
       sendKeyConfigured: sendKeyConfigured(),
     },

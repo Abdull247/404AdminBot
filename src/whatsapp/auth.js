@@ -10,6 +10,7 @@ import { env } from '../config/env.js';
 import { logger } from '../utils/logger.js';
 import { createAuthState } from './auth-state.js';
 import { logGroupMeta, logParticipatingGroups } from './group-jid-log.js';
+import { reelixChannelEnabled, resolveReelixChannelJid } from './reelix-gate.js';
 import { setConnectionStatus, setCurrentSocket } from './socket.js';
 
 let reconnecting = false;
@@ -67,7 +68,6 @@ export async function createWhatsAppSocket({ onMessage }) {
     },
     logger: baileysLogger,
     browser: Browsers.ubuntu('Chrome'),
-    printQRInTerminal: false,
     syncFullHistory: false,
     markOnlineOnConnect: false,
     getMessage: async () => undefined,
@@ -106,6 +106,11 @@ export async function createWhatsAppSocket({ onMessage }) {
       logParticipatingGroups(sock).catch((error) => {
         logger.warn({ err: error }, 'failed to log WhatsApp group jids');
       });
+      if (reelixChannelEnabled()) {
+        resolveReelixChannelJid(sock).catch((error) => {
+          logger.warn({ err: error }, 'failed to resolve Reelix channel jid');
+        });
+      }
     }
 
     if (connection === 'close') {

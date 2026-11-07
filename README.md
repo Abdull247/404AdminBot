@@ -448,7 +448,7 @@ Set the Node version to 18 or newer. In the Render dashboard add:
 NODE_VERSION=20
 ```
 
-Or add an `.node-version` / `NODE_VERSION` env var. `package.json` requires `>=18.18.0`.
+Or add an `.node-version` / `NODE_VERSION` env var. `package.json` requires `>=20.0.0`.
 
 ### Persistent disk
 
@@ -546,13 +546,17 @@ Reelix streaming group (WhatsApp):
 
 ```text
 REELIX_GROUP_JID=120363XXXXXXXXXX@g.us
+REELIX_GROUP_ENABLED=true
+REELIX_CHANNEL_ENABLED=true
+REELIX_CHANNEL_JID=
+REELIX_CHANNEL_INVITE=https://whatsapp.com/channel/0029VbE1Kpt5Ui2Q6dFbwf1C
 REELIX_RESTRICT_ACCESS=true
 REELIX_SEND_KEY=
 REELIX_ADMIN_NUMBERS=2348012345678
 OWNER_NUMBERS=2348012345678
 ```
 
-`REELIX_GROUP_JID` is the WhatsApp group the scheduler posts new titles into (digits`@g.us`, or just the numeric id). On connect the bot logs every group it is in as `WhatsApp group "<name>" jid=...@g.us`; copy that `jid` here. A message in a not-yet-listed group also prints the same line once. `REELIX_RESTRICT_ACCESS=true` makes the bot answer only that group plus owner/admin DMs (`OWNER_NUMBERS` / `REELIX_ADMIN_NUMBERS`); Telegram only answers `TELEGRAM_OWNER_IDS`. `REELIX_SEND_KEY` authenticates `POST /reelix/send`.
+`REELIX_GROUP_JID` is the WhatsApp group the scheduler posts new titles into (digits`@g.us`, or just the numeric id). On connect the bot logs every group it is in as `WhatsApp group "<name>" jid=...@g.us`; copy that `jid` here. A message in a not-yet-listed group also prints the same line once. `REELIX_CHANNEL_INVITE` (or `REELIX_CHANNEL_JID` as digits`@newsletter`) is the WhatsApp channel. `REELIX_GROUP_ENABLED` and `REELIX_CHANNEL_ENABLED` are independent; a disabled target is not sent to. `REELIX_RESTRICT_ACCESS=true` makes the bot answer only that group plus owner/admin DMs (`OWNER_NUMBERS` / `REELIX_ADMIN_NUMBERS`); Telegram only answers `TELEGRAM_OWNER_IDS`. `REELIX_SEND_KEY` authenticates `POST /reelix/send`.
 
 `WHATSAPP_MAX_STALE_MS` drops messages older than this many milliseconds (default 10 minutes). Raise it if a sleeping free-tier host wakes up and you still want it to answer the backlog; lower it if the bot replies to very old group chatter.
 
@@ -581,6 +585,6 @@ Do not use QR login on Render unless you can read the ASCII QR in logs. Pairing 
 - Migrations run on startup (`runMigrations` in `src/index.js`). You do not need a separate migrate step. This includes `004_whatsapp_auth.sql`, which creates the `whatsapp_auth` table for the Postgres session store.
 - Scale to **1 instance**. Two instances with the same session will fight over the WhatsApp link.
 - Health check: `GET /health` (or `/ping`) returns `{"ok":true,"whatsapp":"open","jid":"...","uptime":...}` when connected.
-- Reelix group send: `POST /reelix/send` (alias `/reelix/notify`) with `X-Reelix-Send-Key`. Body is `{ kind, newCount, items: [{ subjectId, title, coverUrl, description, ... }], text?, coverUrl?, jid? }`. The bot composes a structured WhatsApp message (cover + name + details) and sends it to `REELIX_GROUP_JID`. No AI chat call. Admins can also trigger this through the proxy `POST /admin/bot/send`.
+- Reelix send: `POST /reelix/send` (alias `/reelix/notify`) with `X-Reelix-Send-Key`. Body is `{ kind, newCount, items: [{ subjectId, title, coverUrl, description, ... }], text?, coverUrl?, jid? }`. The bot composes a structured WhatsApp message (cover + name + details) and fans it out to enabled destinations (`REELIX_GROUP_JID` and/or the channel). No AI chat call. Admins can also trigger this through the proxy `POST /admin/bot/send`.
 - Worker mode: if the bot stops answering, check logs for disconnects, then confirm the persistent disk still has `/data/session`.
 - Web Service mode: the session is in Neon, so a lost link is not about disk. To relink, clear the `whatsapp_auth` rows (or set `WHATSAPP_AUTH_STORE=file` locally) and restart. A new pairing code will print in logs.

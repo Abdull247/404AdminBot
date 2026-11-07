@@ -1,6 +1,13 @@
+import sharp from 'sharp';
 import { logger } from '../utils/logger.js';
 import { getConnectionStatus, getCurrentSocket } from '../whatsapp/socket.js';
-import { reelixGroupJid } from '../whatsapp/reelix-gate.js';
+import {
+  reelixChannelEnabled,
+  reelixChannelJid,
+  reelixGroupEnabled,
+  reelixGroupJid,
+  reelixSendDestinations,
+} from '../whatsapp/reelix-gate.js';
 
 const MAX_ITEMS = 20;
 const COVER_FETCH_TIMEOUT_MS = 15000;
@@ -93,7 +100,7 @@ export function normalizeNotifyPayload(body = {}) {
     : 'movie';
   const text = String(body.text || body.caption || body.message || '').trim();
   const coverUrl = String(body.coverUrl || body.image || itemCoverUrl(items[0]) || '').trim();
-  const jid = String(body.jid || body.to || '').trim() || reelixGroupJid();
+  const jid = String(body.jid || body.to || '').trim();
   const newCount = Number.isFinite(Number(body.newCount)) && Number(body.newCount) > 0
     ? Number(body.newCount)
     : items.length;
@@ -119,14 +126,26 @@ async function fetchCoverBuffer(url) {
     const mime = String(res.headers.get('content-type') || '').split(';')[0].trim();
     const buffer = Buffer.from(await res.arrayBuffer());
     if (!buffer.length || buffer.length > COVER_MAX_BYTES) return null;
-    return {
-      buffer,
-      mimetype: mime.startsWith('image/') ? mime : 'image/jpeg',
-    };
+    return toJpegCover(buffer, mime.startsWith('image/') ? mime : 'image/jpeg');
   } catch (error) {
     logger.warn({ err: error, url }, 'reelix cover fetch error');
     return null;
   }
+}
+
+async function toJpegCover(buffer, mimetype) {
+  try {
+    const jpeg = await sharp(buffer).rotate().jpeg({ quality: 85 }).toBuffer();
+    if (jpeg.length && jpeg.length <= COVER_MAX_BYTES) {
+      return { buffer: jpeg, mimetype: 'image/jpeg' };
+    }
+  } catch (error) {
+    logger.warn({ err: error, mimetype }, 'reelix cover jpeg convert failed');
+  }
+  return {
+    buffer,
+    mimetype: mimetype.startsWith('image/') ? mimetype : 'image/jpeg',
+  };
 }
 
 async function sendOne(sock, jid, { caption, coverUrl }) {
@@ -143,63 +162,116 @@ async function sendOne(sock, jid, { caption, coverUrl }) {
   return false;
 }
 
+function missingDestinationError(payload) {
+  const reasons = [];
+  if (!reelixGroupEnabled() && !reelixChannelEnabled() && !payload.jid) {
+    return 'Reelix group and channel sends are disabled';
+  }
+  if (reelixGroupEnabled() && !reelixGroupJid()) reasons.push('REELIX_GROUP_JID is not set');
+  if (reelixChannelEnabled() && !reelixChannelJid()) {
+    reasons.push('REELIX_CHANNEL_JID is not set and the channel invite could not be resolved');
+  }
+  if (!reasons.length && !payload.jid) reasons.push('no Reelix send destinations');
+  return reasons.join('; ');
+}
+
+async function sendPayloadToJid(sock, jid, payload) {
+  let sent = 0;
+  let withImage = 0;
+  if (payload.items.length) {
+    for (let index = 0; index < payload.items.length; index += 1) {
+      const item = payload.items[index];
+      const caption = payload.text && payload.items.length === 1
+        ? payload.text
+        : composeItemCaption(item, { kind: payload.kind, index, total: payload.items.length });
+      const usedImage = await sendOne(sock, jid, {
+        caption,
+        coverUrl: itemCoverUrl(item) || (index === 0 ? payload.coverUrl : ''),
+      });
+      sent += 1;
+      if (usedImage) withImage += 1;
+    }
+  } else {
+    const usedImage = await sendOne(sock, jid, {
+      caption: payload.caption,
+      coverUrl: payload.coverUrl,
+    });
+    sent = 1;
+    if (usedImage) withImage = 1;
+  }
+  return { sent, withImage };
+}
+
 export async function sendReelixGroupMessage(raw = {}) {
   const payload = normalizeNotifyPayload(raw);
-  if (!payload.jid) {
-    return { ok: false, error: 'REELIX_GROUP_JID is not set and no jid was provided', status: 503 };
-  }
-
   const sock = getCurrentSocket();
   const status = getConnectionStatus();
   if (!sock || status !== 'open') {
     return { ok: false, error: `whatsapp is not connected (${status})`, status: 503, whatsapp: status };
   }
 
-  let sent = 0;
-  let withImage = 0;
-  try {
-    if (payload.items.length) {
-      for (let index = 0; index < payload.items.length; index += 1) {
-        const item = payload.items[index];
-        const caption = payload.text && payload.items.length === 1
-          ? payload.text
-          : composeItemCaption(item, { kind: payload.kind, index, total: payload.items.length });
-        const usedImage = await sendOne(sock, payload.jid, {
-          caption,
-          coverUrl: itemCoverUrl(item) || (index === 0 ? payload.coverUrl : ''),
-        });
-        sent += 1;
-        if (usedImage) withImage += 1;
-      }
-    } else {
-      const usedImage = await sendOne(sock, payload.jid, {
-        caption: payload.caption,
-        coverUrl: payload.coverUrl,
-      });
-      sent = 1;
-      if (usedImage) withImage = 1;
-    }
-  } catch (error) {
-    logger.error({ err: error, jid: payload.jid }, 'failed to send reelix group message');
-    return { ok: false, error: error.message || 'send failed', status: 502, sent };
+  const destinations = await reelixSendDestinations(sock, payload.jid);
+  if (!destinations.length) {
+    return { ok: false, error: missingDestinationError(payload), status: 503 };
   }
 
-  logger.info(
-    {
-      jid: payload.jid,
-      kind: payload.kind,
-      newCount: payload.newCount,
-      items: payload.items.length,
+  const results = [];
+  let sent = 0;
+  let withImage = 0;
+  let lastError = '';
+
+  for (const destination of destinations) {
+    try {
+      const result = await sendPayloadToJid(sock, destination.jid, payload);
+      sent += result.sent;
+      withImage += result.withImage;
+      results.push({
+        ok: true,
+        type: destination.type,
+        jid: destination.jid,
+        messages: result.sent,
+        image: result.withImage > 0,
+      });
+      logger.info(
+        {
+          jid: destination.jid,
+          type: destination.type,
+          kind: payload.kind,
+          newCount: payload.newCount,
+          items: payload.items.length,
+          sent: result.sent,
+          image: result.withImage,
+        },
+        'sent reelix message',
+      );
+    } catch (error) {
+      lastError = error.message || 'send failed';
+      logger.error({ err: error, jid: destination.jid, type: destination.type }, 'failed to send reelix message');
+      results.push({
+        ok: false,
+        type: destination.type,
+        jid: destination.jid,
+        error: lastError,
+      });
+    }
+  }
+
+  const ok = results.some((item) => item.ok);
+  if (!ok) {
+    return {
+      ok: false,
+      error: lastError || 'send failed',
+      status: 502,
       sent,
-      image: withImage,
-    },
-    'sent reelix group message',
-  );
+      destinations: results,
+    };
+  }
 
   return {
     ok: true,
     sent: true,
-    jid: payload.jid,
+    jid: results.find((item) => item.ok)?.jid || destinations[0].jid,
+    destinations: results,
     kind: payload.kind,
     newCount: payload.newCount,
     messages: sent,

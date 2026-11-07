@@ -6,7 +6,7 @@
   "description": "Expandable WhatsApp and Telegram AI bot using Baileys, Telegram Bot API, and Neon",
   "main": "src/index.js",
   "engines": {
-    "node": ">=18.18.0"
+    "node": ">=20.0.0"
   },
   "scripts": {
     "start": "node src/index.js",
@@ -25,9 +25,10 @@
     "@hapi/boom": "^10.0.1",
     "@insforge/instabox-sdk": "^0.5.3",
     "@neondatabase/serverless": "^0.10.4",
-    "@whiskeysockets/baileys": "^6.7.18",
+    "@whiskeysockets/baileys": "7.0.0-rc14",
     "dotenv": "^16.4.7",
     "pino": "^9.6.0",
-    "qrcode-terminal": "^0.12.0"
+    "qrcode-terminal": "^0.12.0",
+    "sharp": "^0.34.4"
   }
 }
