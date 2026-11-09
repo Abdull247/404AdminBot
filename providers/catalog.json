@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "defaultProvider": "nvidia",
+  "defaultProvider": "apinex",
   "roles": {
     "chat": {
-      "provider": "nvidia",
-      "model": "mistralai/mistral-large-4-1t-a52b"
+      "provider": "apinex",
+      "model": "free/glm-5.3-flash"
     },
     "persistence": {
       "provider": "nvidia",

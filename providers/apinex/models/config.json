@@ -1,0 +1,27 @@
+{
+  "defaultModel": "free/glm-5.3-flash",
+  "models": [
+    {
+      "id": "free/glm-5.3-flash",
+      "name": "GLM 5.3 Flash (free)",
+      "enabled": true,
+      "default": true,
+      "supportFallback": true,
+      "priority": 100,
+      "roles": ["chat"],
+      "support": {
+        "chat": true,
+        "tools": true,
+        "vision": false,
+        "streaming": true,
+        "json": true,
+        "persistence": false
+      },
+      "limits": {
+        "maxTokens": 8192,
+        "contextWindow": 128000,
+        "timeoutMs": 60000
+      }
+    }
+  ]
+}

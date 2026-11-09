@@ -1,7 +1,7 @@
 {
   "ai": {
-    "defaultModel": "poolside/laguna-xs-2.1",
-    "defaultProvider": "nvidia",
+    "defaultModel": "free/glm-5.3-flash",
+    "defaultProvider": "apinex",
     "catalogPath": "./providers",
     "temperature": 0.7,
     "maxTokens": 4096,

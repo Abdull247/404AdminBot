@@ -109,6 +109,9 @@ Providers live in `providers/`, one folder per vendor. The catalog is built for 
 ```text
 providers/
   catalog.json
+  apinex/
+    provider.json
+    models/config.json
   nvidia/
     provider.json
     models/config.json
@@ -123,6 +126,7 @@ providers/
   together/
   cerebras/
   pollinations/
+  riverai/
 ```
 
 `providers/catalog.json` picks the default provider, role routing (`chat`, `persistence`, `vision`, `summarize`), and fallback policy. `config.json` still holds `ai.defaultModel` and can override `ai.fallback`.
@@ -140,7 +144,7 @@ Fallback order when a call fails (timeout, 429, 5xx, auth, empty choices):
 
 Providers without a required key are skipped. Failed models get a short cooldown (`cooldownMs`, longer for 429 / 401). Set `supportFallback: false` on a model to keep it out of the hop list. Both the main bot and the persistence agent use this chain.
 
-`ai.defaultModel` still picks the first chat model. NVIDIA is the default provider (`mistralai/mistral-large-4-1t-a52b`). Use `providerId/modelId` when two vendors share a name. Owner command `.models` prints the live catalog and fallback order.
+`ai.defaultModel` still picks the first chat model. The default provider is Apinex (`free/glm-5.3-flash`, endpoint `https://api.apinex.bond/v1` via the generic `AI_BASE_URL` / `AI_API_KEY` pair). The persistent background agent is routed separately and does not use Apinex. Use `providerId/modelId` when two vendors share a name. Owner command `.models` prints the live catalog and fallback order.
 
 Probe enabled models without one-by-one tool calls:
 
