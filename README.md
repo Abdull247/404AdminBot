@@ -58,7 +58,7 @@ src/
 
 Copy `.env.example` to `.env` and fill in:
 
-- Provider env vars named in `providers/<id>/provider.json`. Default is NVIDIA (`NVIDIA_BASE_URL` / `NVIDIA_API_KEY`). Also set `HCNSEC_*`, `AGNES_*`, and `KIRA_*` for fallbacks. Extra keys such as `OPENROUTER_API_KEY`, `GROQ_API_KEY`, `GOOGLE_API_KEY` stay optional.
+- Provider env vars named in `providers/<id>/provider.json`. Default is Apinex (`APINEX_BASE_URL` / `APINEX_API_KEY`). Also set `NVIDIA_*` for the persistence agent and `HCNSEC_*`, `AGNES_*`, and `KIRA_*` for fallbacks. Extra keys such as `OPENROUTER_API_KEY`, `GROQ_API_KEY`, `GOOGLE_API_KEY` stay optional.
 - `DATABASE_URL`
 - `LANGSEARCH_API_KEY`
 - `TELEGRAM_BOT_TOKEN` (and optionally `TELEGRAM_ENABLED=true`) if you want Telegram as well as WhatsApp
@@ -144,7 +144,7 @@ Fallback order when a call fails (timeout, 429, 5xx, auth, empty choices):
 
 Providers without a required key are skipped. Failed models get a short cooldown (`cooldownMs`, longer for 429 / 401). Set `supportFallback: false` on a model to keep it out of the hop list. Both the main bot and the persistence agent use this chain.
 
-`ai.defaultModel` still picks the first chat model. The default provider is Apinex (`free/glm-5.3-flash`, endpoint `https://api.apinex.bond/v1` via the generic `AI_BASE_URL` / `AI_API_KEY` pair). The persistent background agent is routed separately and does not use Apinex. Use `providerId/modelId` when two vendors share a name. Owner command `.models` prints the live catalog and fallback order.
+`ai.defaultModel` still picks the first chat model. The default provider is Apinex (`free/glm-5.3-flash`, endpoint `https://api.apinex.bond/v1`, configured with its own `APINEX_BASE_URL` / `APINEX_API_KEY` env vars). The persistent background agent is routed separately and does not use Apinex. Use `providerId/modelId` when two vendors share a name. Owner command `.models` prints the live catalog and fallback order.
 
 Probe enabled models without one-by-one tool calls:
 
