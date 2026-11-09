@@ -48,7 +48,7 @@ src/
 - `src/tools/catalog/` holds one folder per tool (`config.json` + `handler.js`).
 - `memory` lets the bot save durable facts about the boss and later recall them with a fuzzy search, so a rough or slightly-off query still finds the right note. `tools.handoffAfterRounds` and `memory.injectTopMemories` in `config.json` control how many memories are auto-injected into the prompt.
 - `tasks` creates, tracks, and completes reminders and to-dos, scoped to the current chat. Each task has a title, optional detail, status (`pending`, `in_progress`, `done`, `cancelled`), a 1-3 priority, and an optional due time.
-- `personalities/` holds one JSON file per AI personality.
+- `personalities/` holds one JSON file per AI personality. The default is `jen404` (`bot.defaultPersonality`): Error404's playful Naija bestie, hypeman, advisor, brainstorm partner and loving teaser.
 - `write_file` can create `.html`, `.css`, `.js`, `.txt`, `.json`, and `.md` files, send them on WhatsApp or Telegram, then send a short recap.
 - `sandbox` runs code and commands in a temporary E2B Linux VM. One sandbox is reused per WhatsApp chat until it is killed or times out.
 - `linux_machine` is a persistent InstaBox Linux computer (Debian, `/data` disk, optional desktop). It is available in DMs and groups. `sandboxes.json` picks which one is active.
@@ -229,8 +229,9 @@ Only one sandbox backend is exposed at a time. Set `"default"` in `sandboxes.jso
 ```json
 {
   "bot": { "name": "Jen404", "type": "...", "identity": "..." },
-  "admin": { "name": "Error404", "role": "...", "whatsapp": "...", "portfolio": "...", "github": "..." },
+  "admin": { "name": "Error404", "age": 17, "country": "Nigeria", "status": "...", "whatsapp": "...", "portfolio": "...", "github": "..." },
   "creator": { "name": "Error404", "whatsapp": "...", "portfolio": "...", "github": "...", "about": "..." },
+  "vibe": { "tone": "...", "nigerian_flavour": "...", "favourite_emojis": ["🤧", "🌚", "🔥", "😭", "😹", "🕊️", "😌"], "teasing": "...", "remember_and_mention": "..." },
   "instructions": ["always-on rules"],
   "developer_profile": { "...": "specializations, technologies, approach" },
   "projects": { "...": "one entry per project" },
@@ -243,7 +244,7 @@ How it is rendered into the prompt:
 
 - `bot` and `creator` become the identity header; `response_guidelines.admin_questions.default` (or the legacy `creator_questions.default`) becomes the canned "who made you" answer.
 - Top-level `instructions` become permanent rules that survive every personality switch.
-- Every other top-level section (`admin`, `developer_profile`, `projects`, `technical_preferences`, `response_guidelines`, and anything new you add later) is rendered generically as readable nested bullets.
+- Every other top-level section (`admin`, `vibe`, `developer_profile`, `projects`, `technical_preferences`, `response_guidelines`, and anything new you add later) is rendered generically as readable nested bullets.
 - An `instructions` array at any nesting depth becomes a "Keep in mind:" sub-block at that spot, so per-project accuracy rules stay attached to their project.
 
 Notes:

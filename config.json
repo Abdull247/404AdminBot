@@ -32,7 +32,7 @@
     "ownerNumbers": [],
     "logGroupMessages": true,
     "commandPrefix": ".",
-    "defaultPersonality": "jbtoai",
+    "defaultPersonality": "jen404",
     "queue": {
       "maxConcurrentChats": 1,
       "maxPerChat": 8,
