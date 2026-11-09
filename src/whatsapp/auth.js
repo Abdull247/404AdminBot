@@ -9,8 +9,6 @@ import qrcode from 'qrcode-terminal';
 import { env } from '../config/env.js';
 import { logger } from '../utils/logger.js';
 import { createAuthState } from './auth-state.js';
-import { logGroupMeta, logParticipatingGroups } from './group-jid-log.js';
-import { reelixChannelEnabled, resolveReelixChannelJid } from './reelix-gate.js';
 import { setConnectionStatus, setCurrentSocket } from './socket.js';
 
 let reconnecting = false;
@@ -101,16 +99,8 @@ export async function createWhatsAppSocket({ onMessage }) {
       setConnectionStatus('open');
       logger.info(
         { jid: sock.user?.id, lid: sock.user?.lid || null },
-        'WhatsApp connected (lid is required to detect mentions/replies in some groups)',
+        'WhatsApp connected',
       );
-      logParticipatingGroups(sock).catch((error) => {
-        logger.warn({ err: error }, 'failed to log WhatsApp group jids');
-      });
-      if (reelixChannelEnabled()) {
-        resolveReelixChannelJid(sock).catch((error) => {
-          logger.warn({ err: error }, 'failed to resolve Reelix channel jid');
-        });
-      }
     }
 
     if (connection === 'close') {
@@ -136,14 +126,6 @@ export async function createWhatsAppSocket({ onMessage }) {
         logger.error('WhatsApp session logged out. Delete the session folder and link again.');
       }
     }
-  });
-
-  sock.ev.on('groups.upsert', (groups) => {
-    for (const meta of groups || []) logGroupMeta(meta);
-  });
-
-  sock.ev.on('groups.update', (groups) => {
-    for (const meta of groups || []) logGroupMeta(meta);
   });
 
   sock.ev.on('messages.upsert', ({ messages }) => {

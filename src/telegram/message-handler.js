@@ -16,8 +16,7 @@ import {
   touchSessionUse,
 } from '../platforms/link.js';
 import { extractTelegramText, shouldReplyToTelegram, stripTelegramMention, wrapTelegramMessage } from './filters.js';
-import { restrictAccessEnabled } from '../whatsapp/reelix-gate.js';
-import { isTelegramOwner } from './owner.js';
+import { isAdminTelegram, isTelegramOwner } from './owner.js';
 import { hasTelegramAttachment, hasTelegramImage, downloadTelegramImage } from './media.js';
 import { displayName, isTelegramGroup } from './ids.js';
 import { logTelegramMessage } from './log-message.js';
@@ -256,8 +255,10 @@ export async function handleTelegramUpdate(bot, update) {
 
   const chatId = message.chat?.id;
   if (!chatId) return;
-  if (restrictAccessEnabled() && !isTelegramOwner(message)) {
-    logger.debug({ chatId }, 'ignored Telegram message outside Reelix lockdown');
+  // Single-admin bot: groups are never handled.
+  if (isTelegramGroup(message.chat)) return;
+  if (!isAdminTelegram(message)) {
+    logger.debug({ chatId }, 'ignored Telegram message from a non-admin user');
     return;
   }
 

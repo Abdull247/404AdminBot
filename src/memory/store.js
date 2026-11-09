@@ -17,9 +17,12 @@ export async function loadContext(jid) {
     return { history: [], memories: [] };
   }
 
+  const memoryLimit = Number.parseInt(appConfig.memory.injectTopMemories, 10)
+    || appConfig.memory.maxMemoriesPerUser;
+
   const [history, memories] = await Promise.all([
     getRecentMessages(jid, appConfig.memory.maxHistoryMessages),
-    listMemories(jid, appConfig.memory.maxMemoriesPerUser),
+    listMemories(jid, memoryLimit),
   ]);
 
   return { history, memories };
@@ -28,5 +31,5 @@ export async function loadContext(jid) {
 export function formatMemories(memories) {
   if (!memories.length) return '';
   const lines = memories.map((item) => `- ${item.key}: ${item.value}`);
-  return `Known facts about this user:\n${lines.join('\n')}`;
+  return `Things you already remember about the boss (highest importance first). Use the memory tool to search for more:\n${lines.join('\n')}`;
 }

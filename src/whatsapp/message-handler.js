@@ -23,8 +23,7 @@ import { enqueueChatWork } from './request-queue.js';
 import { sendArtifacts } from './send.js';
 import { toWhatsAppText } from './markdown.js';
 import { WHATSAPP } from '../platforms/ids.js';
-import { isLockdownAllowed, restrictAccessEnabled } from './reelix-gate.js';
-import { logSeenGroupJid } from './group-jid-log.js';
+import { isAdminWhatsAppJid } from './owner.js';
 import {
   linkedEnvironmentNotes,
   resolveLinkedSession,
@@ -244,13 +243,10 @@ export async function handleIncomingMessage(sock, message) {
   if (!jid) return;
   if (isNewsletterJid(jid)) return;
   if (appConfig.bot.ignoreStatus && isStatusJid(jid)) return;
-  if (isGroupJid(jid)) {
-    logSeenGroupJid(sock, jid).catch((error) => {
-      logger.debug({ err: error, jid }, 'failed to log group jid');
-    });
-  }
-  if (restrictAccessEnabled() && !isLockdownAllowed({ jid, message })) {
-    logger.debug({ jid }, 'ignored WhatsApp message outside Reelix lockdown');
+  // Single-admin bot: groups are never handled.
+  if (isGroupJid(jid)) return;
+  if (!isAdminWhatsAppJid(jid, sock)) {
+    logger.debug({ jid }, 'ignored WhatsApp DM from a non-admin number');
     return;
   }
 

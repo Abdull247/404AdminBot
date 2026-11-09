@@ -3,6 +3,7 @@ export { runMigrations } from './migrate.js';
 export * as users from './repositories/users.js';
 export * as conversations from './repositories/conversations.js';
 export * as memories from './repositories/memories.js';
+export * as tasks from './repositories/tasks.js';
 export * as chats from './repositories/chats.js';
 export * as settings from './repositories/settings.js';
 export * as persistence from './repositories/persistence/index.js';

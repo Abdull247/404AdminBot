@@ -6,7 +6,6 @@ import { handleModels } from './models.js';
 import { parseCommand } from './parse.js';
 import { handlePersistence } from './persistence.js';
 import { handlePersonalities } from './personalities.js';
-import { handleReelix } from './reelix.js';
 import { handleUnwrapViewOnce } from './unwrap.js';
 import { linkCommandDefinitions } from './platform-link.js';
 import { commandPrefix } from './prefix.js';
@@ -36,13 +35,6 @@ function loadCommands() {
     usage: '.personalities  |  /personalities  |  .personalities - Helpfulness',
     description: 'List AI personalities, or switch this chat to one.',
     handler: handlePersonalities,
-  });
-  registerCommand({
-    name: 'reelix',
-    aliases: ['movie', 'movies', 'film'],
-    usage: '.reelix <title>  |  /reelix <title>  |  .reelix search <title>  |  .reelix details <id>',
-    description: 'Search Reelix movies and series, then show details, cast, or resources.',
-    handler: handleReelix,
   });
   registerCommand({
     name: 'unwrap',

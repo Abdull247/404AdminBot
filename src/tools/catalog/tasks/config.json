@@ -1,0 +1,57 @@
+{
+  "enabled": true,
+  "definition": {
+    "type": "function",
+    "function": {
+      "name": "tasks",
+      "description": "The boss's task and reminder list (single-admin to-dos). Use action=create whenever Error404 asks you to remember, remind, schedule, or note a task or to-do. Use action=list to show open tasks, action=search to find one, action=update to edit it, action=complete to mark it done, and action=delete to remove it. When a task has a time or day, resolve it to an exact ISO-8601 dueAt first (call get_datetime if you need today's date).",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "create, list, search, update, complete, delete, or get. Default list."
+          },
+          "id": {
+            "type": "integer",
+            "description": "Task id, required for update, complete, delete, and get."
+          },
+          "title": {
+            "type": "string",
+            "description": "Short task title. Required for create."
+          },
+          "details": {
+            "type": "string",
+            "description": "Optional longer notes or context for the task."
+          },
+          "dueAt": {
+            "type": "string",
+            "description": "Optional ISO-8601 datetime for when the task is due, for example 2026-02-14T09:00:00+01:00."
+          },
+          "priority": {
+            "type": "integer",
+            "description": "1 (high), 2 (normal), or 3 (low). Default 2."
+          },
+          "status": {
+            "type": "string",
+            "description": "pending, in_progress, done, or cancelled. Used by update."
+          },
+          "tags": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Optional tags such as work, personal, urgent."
+          },
+          "query": {
+            "type": "string",
+            "description": "Search text for action=search (matches title and details)."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Maximum results for list or search. Default 20."
+          }
+        },
+        "required": ["action"]
+      }
+    }
+  }
+}

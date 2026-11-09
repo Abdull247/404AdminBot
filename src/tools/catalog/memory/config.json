@@ -1,0 +1,40 @@
+{
+  "enabled": true,
+  "definition": {
+    "type": "function",
+    "function": {
+      "name": "memory",
+      "description": "Your persistent long-term memory box about the boss (Error404). Use action=save to store a durable fact (preferences, projects, people, decisions, important context, how they like things done). Use action=search with a query to recall stored facts; the query can be a guess or only an approximation — matching is fuzzy. Use action=list to dump everything, action=get for a single key, or action=forget to delete a key. Always search before claiming you do not know something you might have stored.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "save, search, list, get, or forget. Default search."
+          },
+          "query": {
+            "type": "string",
+            "description": "Text to recall. Can be approximate or a guessed phrase; keys and values are matched fuzzily."
+          },
+          "key": {
+            "type": "string",
+            "description": "Short snake_case memory key for save, get, or forget."
+          },
+          "value": {
+            "type": "string",
+            "description": "The fact to store for save."
+          },
+          "importance": {
+            "type": "integer",
+            "description": "1 to 10 importance for save. Higher is recalled more often. Default 5."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Maximum results for search or list. Default 10."
+          }
+        },
+        "required": ["action"]
+      }
+    }
+  }
+}

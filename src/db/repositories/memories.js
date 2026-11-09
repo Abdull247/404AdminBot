@@ -24,3 +24,22 @@ export async function listMemories(jid, limit = 50) {
     LIMIT ${limit}
   `;
 }
+
+export async function getMemory(jid, key) {
+  const rows = await sql`
+    SELECT id, jid, key, value, importance, metadata, created_at, updated_at
+    FROM memories
+    WHERE jid = ${jid} AND key = ${key}
+    LIMIT 1
+  `;
+  return rows[0] || null;
+}
+
+export async function deleteMemory(jid, key) {
+  const rows = await sql`
+    DELETE FROM memories
+    WHERE jid = ${jid} AND key = ${key}
+    RETURNING id
+  `;
+  return Boolean(rows[0]);
+}

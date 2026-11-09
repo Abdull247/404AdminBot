@@ -2,6 +2,8 @@
 
 Node.js WhatsApp and Telegram bot using Baileys, the Telegram Bot API, an OpenAI-compatible AI API, and Neon Postgres for conversation memory.
 
+This is a single-admin personal assistant. It only ever talks to its owner (Error404) and treats every DM as coming from the boss. Group and channel messages are ignored. Admins are listed in `OWNER_NUMBERS` (WhatsApp) and `TELEGRAM_OWNER_IDS` (Telegram); when none are set, every DM is accepted so an unconfigured bot is never locked out.
+
 ## Layout
 
 ```text
@@ -40,11 +42,12 @@ src/
 - `stickers/` holds WhatsApp sticker packs: one folder per sticker (webp + `info.json`) and `stickers/config.json` listing them for the model.
 - `cloudflare.json` holds the Cloudflare AI provider (account/token env refs) and models by category. `generate_image` uses its `image` models; other model families can be added later.
 - `custom-instructions.json` holds always-on identity and creator details injected into every system prompt.
-- In groups the bot stays quiet unless it is @mentioned or someone replies to one of its messages. Replies are quoted so the group can follow the thread. The AI is told it is in a group and gets the group name, description, and speaker.
+- Group and channel messages are ignored entirely; this bot only serves its admin in DMs.
 - `.env` holds secrets and connection URLs.
 - `migrations/` holds SQL files applied on startup.
 - `src/tools/catalog/` holds one folder per tool (`config.json` + `handler.js`).
-- `reelix_music` searches tracks, fetches details, and sends the song as an mp3. Default source is Audiomack (`config.json` `bot.reelixMusic`). HMAC credentials go in `REELIX_MUSIC_*`. Public stream redirects live at `GET /misc/stream?trackId=` when `BASE_URL` and `publicStreamEndpoint` are on.
+- `memory` lets the bot save durable facts about the boss and later recall them with a fuzzy search, so a rough or slightly-off query still finds the right note. `tools.handoffAfterRounds` and `memory.injectTopMemories` in `config.json` control how many memories are auto-injected into the prompt.
+- `tasks` creates, tracks, and completes reminders and to-dos, scoped to the current chat. Each task has a title, optional detail, status (`pending`, `in_progress`, `done`, `cancelled`), a 1-3 priority, and an optional due time.
 - `personalities/` holds one JSON file per AI personality.
 - `write_file` can create `.html`, `.css`, `.js`, `.txt`, `.json`, and `.md` files, send them on WhatsApp or Telegram, then send a short recap.
 - `sandbox` runs code and commands in a temporary E2B Linux VM. One sandbox is reused per WhatsApp chat until it is killed or times out.
@@ -67,17 +70,11 @@ Copy `.env.example` to `.env` and fill in:
 
 Edit `config.json` for default model, temperature, and system instruction. Add or toggle providers under `providers/`. Edit `sandboxes.json` to choose the active Linux backend.
 
-Group chat:
+Single-admin access:
 
-- `ignoreGroups: true` (default) means the bot does not answer every group message.
-- `respondToMentionsInGroups: true` answers when someone tags / @mentions the bot.
-- `respondToRepliesInGroups: true` answers when someone replies to the bot's own message.
-- `respondToNameMentionsInGroups: true` answers when the bot's name appears in the text without a tag or reply. It matches the configured name, its auto-derived aliases (like `404bot`, `404 bot`, or the numeric part of the name), and anything listed in `nameAliases`.
-- `deriveNameAliases: true` builds those aliases automatically from `bot.name`. Set it to `false` to match only `bot.name` and `nameAliases`.
-- `nameAliases: []` adds extra spellings to treat as a call, for example `["404bot", "404 bot", "error404"]`.
-- `nameCallPatterns: []` accepts extra case-insensitive regular expressions for full control.
-- Group replies quote the triggering message. The model receives group name, description, participant count, and who spoke.
-- `reactInGroups: true` lets the bot emoji-react to a tagged or quoted group message (funny, thanks, hype, greetings) and then still reply.
+- Only DMs are processed. Group and channel (newsletter) messages are skipped before any AI call.
+- If `OWNER_NUMBERS` / `TELEGRAM_OWNER_IDS` are set, only those numbers/ids are answered; everything else is silently ignored. Leave them empty to accept every DM.
+- `bot.name` and `nameAliases` are still used for the model's own framing, but mention/reply gating no longer applies because groups are out of scope.
 
 ```bash
 npm install
@@ -201,7 +198,7 @@ Tool calling is enabled in `config.json`. Each tool lives in `src/tools/catalog/
 
 Only one sandbox backend is exposed at a time. Set `"default"` in `sandboxes.json` to `linux_machine` or `sandbox`. The bot tells the model the active type and description.
 
-`list_chats` and `summarize_chat` are owner-only. The bot logs DMs and group messages it sees (even when `ignoreGroups` is true and it does not reply). Ask it to list chats, then summarize a group or pull out facts, people, decisions, and action items. Set `OWNER_NUMBERS` in `.env` (comma-separated, with country code) so only you can use these tools. Summarize reacts with an hourglass, then a check mark.
+`list_chats` and `summarize_chat` are admin-only. The bot logs DMs it sees. Ask it to list chats, then summarize a conversation or pull out facts, people, decisions, and action items. Set `OWNER_NUMBERS` in `.env` (comma-separated, with country code) if you want these tools gated to your number; with no `OWNER_NUMBERS` set, every DM is the admin. Summarize reacts with an hourglass, then a check mark.
 
 `react` puts one emoji on the current WhatsApp message. In groups, if someone tags the bot or replies to it with something funny, hype, or grateful, it can react first and then send a text reply.
 
@@ -211,7 +208,11 @@ Only one sandbox backend is exposed at a time. Set `"default"` in `sandboxes.jso
 
 `generate_image` creates an image from a text prompt using the Cloudflare AI provider. Set `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN`; models live in `cloudflare.json` (default `@cf/black-forest-labs/flux-1-schnell`). It reacts with an hourglass while running and a picture emoji when done, sends the image on WhatsApp, then stores it in the chat's R2 folder when R2 is configured.
 
-`file_storage` persists files to Cloudflare R2 and remembers them in the database, scoped to the requesting user or group. Set `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, and `R2_ENDPOINT` (plus optional `R2_PUBLIC_URL`). Actions: `upload` (content, base64, or path), `get`, `list`, `delete`. Incoming user files are also stored automatically for the chat.
+`file_storage` persists files to Cloudflare R2 and remembers them in the database, scoped to the requesting chat. Set `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, and `R2_ENDPOINT` (plus optional `R2_PUBLIC_URL`). Actions: `upload` (content, base64, or path), `get`, `list`, `delete`. Incoming user files are also stored automatically for the chat.
+
+`memory` is the bot's long-term note box. `save` stores a fact about the boss (with an optional `key` and importance), `search` does a fuzzy lookup so a rough or misspelled query still scores against saved notes by character-trigram overlap, token overlap, and substring match, `list` browses, `get` fetches one, and `forget` removes one. The top `memory.injectTopMemories` memories are auto-injected into the system prompt each turn.
+
+`tasks` manages reminders and to-dos for the current chat. Actions: `create` (title + optional detail, priority 1-3, and an optional `dueAt`), `list` (optionally by status), `search` (fuzzy by title), `update`, `complete`, and `delete`. Tasks are scoped per chat so the boss's list stays their own.
 
 `create_agent` is only registered when `persistenceAgent.enabled` is true and at least one sandbox in `sandboxes.json` has `supports_persistence_agent: true` (typos `surports_*` also work). The main bot reacts with an hourglass, queues the job, and replies with a job id plus `.agent` / `.agent logs` commands. If a persistent agent is already running (see `persistenceAgent.maxConcurrent`), the tool returns that instance's id, status, task, and check commands instead of starting another. Long tasks that burn more than `tools.handoffAfterRounds` tool rounds on the main bot are handed off automatically.
 
@@ -224,20 +225,21 @@ Only one sandbox backend is exposed at a time. Set `"default"` in `sandboxes.jso
 ```json
 {
   "bot": { "name": "Jen404", "type": "...", "identity": "..." },
+  "admin": { "name": "Error404", "role": "...", "whatsapp": "...", "portfolio": "...", "github": "..." },
   "creator": { "name": "Error404", "whatsapp": "...", "portfolio": "...", "github": "...", "about": "..." },
   "instructions": ["always-on rules"],
   "developer_profile": { "...": "specializations, technologies, approach" },
   "projects": { "...": "one entry per project" },
   "technical_preferences": { "...": "..." },
-  "response_guidelines": { "...": "tone, creator_questions.default canned answer, ..." }
+  "response_guidelines": { "...": "tone, admin_questions.default canned answer, ..." }
 }
 ```
 
 How it is rendered into the prompt:
 
-- `bot` and `creator` become the identity header; `response_guidelines.creator_questions.default` becomes the canned "who made you" answer.
+- `bot` and `creator` become the identity header; `response_guidelines.admin_questions.default` (or the legacy `creator_questions.default`) becomes the canned "who made you" answer.
 - Top-level `instructions` become permanent rules that survive every personality switch.
-- Every other top-level section (`developer_profile`, `projects`, `technical_preferences`, `response_guidelines`, and anything new you add later) is rendered generically as readable nested bullets.
+- Every other top-level section (`admin`, `developer_profile`, `projects`, `technical_preferences`, `response_guidelines`, and anything new you add later) is rendered generically as readable nested bullets.
 - An `instructions` array at any nesting depth becomes a "Keep in mind:" sub-block at that spot, so per-project accuracy rules stay attached to their project.
 
 Notes:
@@ -283,7 +285,7 @@ TELEGRAM_BOT_USERNAME=YourBot
 TELEGRAM_OWNER_IDS=123456789
 ```
 
-`telegram.json` controls prefix (`/`), group mention/reply behavior, typing, owners, and long-poll settings. Commands match WhatsApp: `/menu`, `/personalities`, `/reelix`, `/agent`, plus the link commands below. Groups stay quiet unless the bot is @mentioned, someone replies to it, or its name appears in the text (`respondToNameMentionsInGroups`), same as WhatsApp. `nameAliases` and `nameCallPatterns` come from `config.json`; the Telegram bot's own username and first name are also matched.
+`telegram.json` controls prefix (`/`), typing, admins, and long-poll settings. Commands match WhatsApp: `/menu`, `/personalities`, `/agent`, plus the link commands below. Only admin DMs are answered; group messages are ignored.
 
 ## Platform linking
 
@@ -383,7 +385,7 @@ Two supported service types. Both run the same code; the bot switches modes from
 
 Set the environment variable `PORT` (Render injects it automatically, but you can also pin it). The bot then:
 
-- starts a tiny HTTP server on `$PORT` serving `GET /`, `/health`, and `/ping` with JSON status (`whatsapp` connection state and `jid` included), plus `POST /reelix/send` for the Reelix group notify;
+- starts a tiny HTTP server on `$PORT` serving `GET /`, `/health`, and `/ping` with JSON status (`whatsapp` connection state and `jid` included);
 - defaults `WHATSAPP_AUTH_STORE=postgres`, so the WhatsApp session lives in Neon instead of the ephemeral disk and survives deploys and restarts.
 
 Free web services sleep after ~15 minutes of no inbound HTTP. The WhatsApp socket does not count as activity, so it is strongest to keep a free pinger (UptimeRobot, cron-job.org, etc.) hitting `/health` every 5-10 minutes.
@@ -542,23 +544,15 @@ INSTABOX_MACHINE_ID=
 WHATSAPP_MAX_STALE_MS=600000
 ```
 
-Reelix streaming group (WhatsApp):
+Admin access (WhatsApp):
 
 ```text
-REELIX_GROUP_JID=120363XXXXXXXXXX@g.us
-REELIX_GROUP_ENABLED=true
-REELIX_CHANNEL_ENABLED=true
-REELIX_CHANNEL_JID=
-REELIX_CHANNEL_INVITE=https://whatsapp.com/channel/0029VbE1Kpt5Ui2Q6dFbwf1C
-REELIX_RESTRICT_ACCESS=true
-REELIX_SEND_KEY=
-REELIX_ADMIN_NUMBERS=2348012345678
 OWNER_NUMBERS=2348012345678
 ```
 
-`REELIX_GROUP_JID` is the WhatsApp group the scheduler posts new titles into (digits`@g.us`, or just the numeric id). On connect the bot logs every group it is in as `WhatsApp group "<name>" jid=...@g.us`; copy that `jid` here. A message in a not-yet-listed group also prints the same line once. `REELIX_CHANNEL_INVITE` (or `REELIX_CHANNEL_JID` as digits`@newsletter`) is the WhatsApp channel. `REELIX_GROUP_ENABLED` and `REELIX_CHANNEL_ENABLED` are independent; a disabled target is not sent to. `REELIX_RESTRICT_ACCESS=true` makes the bot answer only that group plus owner/admin DMs (`OWNER_NUMBERS` / `REELIX_ADMIN_NUMBERS`); Telegram only answers `TELEGRAM_OWNER_IDS`. `REELIX_SEND_KEY` authenticates `POST /reelix/send`.
+`OWNER_NUMBERS` is a comma-separated list of WhatsApp numbers (digits only, country code, no `+`) allowed to talk to the bot. Leave it empty to accept every DM. Group and channel messages are always ignored.
 
-`WHATSAPP_MAX_STALE_MS` drops messages older than this many milliseconds (default 10 minutes). Raise it if a sleeping free-tier host wakes up and you still want it to answer the backlog; lower it if the bot replies to very old group chatter.
+`WHATSAPP_MAX_STALE_MS` drops messages older than this many milliseconds (default 10 minutes). Raise it if a sleeping free-tier host wakes up and you still want it to answer the backlog.
 
 `config.json` is in the repo, so model/personality settings deploy with git. Secrets stay in Render env vars.
 
@@ -585,6 +579,5 @@ Do not use QR login on Render unless you can read the ASCII QR in logs. Pairing 
 - Migrations run on startup (`runMigrations` in `src/index.js`). You do not need a separate migrate step. This includes `004_whatsapp_auth.sql`, which creates the `whatsapp_auth` table for the Postgres session store.
 - Scale to **1 instance**. Two instances with the same session will fight over the WhatsApp link.
 - Health check: `GET /health` (or `/ping`) returns `{"ok":true,"whatsapp":"open","jid":"...","uptime":...}` when connected.
-- Reelix send: `POST /reelix/send` (alias `/reelix/notify`) with `X-Reelix-Send-Key`. Body is `{ kind, newCount, items: [{ subjectId, title, coverUrl, description, ... }], text?, coverUrl?, jid? }`. The bot composes a structured WhatsApp message (cover + name + details) and fans it out to enabled destinations (`REELIX_GROUP_JID` and/or the channel). No AI chat call. Admins can also trigger this through the proxy `POST /admin/bot/send`.
 - Worker mode: if the bot stops answering, check logs for disconnects, then confirm the persistent disk still has `/data/session`.
 - Web Service mode: the session is in Neon, so a lost link is not about disk. To relink, clear the `whatsapp_auth` rows (or set `WHATSAPP_AUTH_STORE=file` locally) and restart. A new pairing code will print in logs.

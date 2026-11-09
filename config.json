@@ -34,30 +34,21 @@
     "commandPrefix": ".",
     "defaultPersonality": "jbtoai",
     "queue": {
-      "maxConcurrentChats": 4,
+      "maxConcurrentChats": 1,
       "maxPerChat": 8,
-      "maxGlobal": 48,
+      "maxGlobal": 24,
       "notifyQueued": true
-    },
-    "reelixMusic": {
-      "enabled": true,
-      "publicAccess": true,
-      "allowInGroups": true,
-      "allowStream": true,
-      "allowStreamInDms": true,
-      "allowStreamInGroups": true,
-      "publicStreamEndpoint": true,
-      "defaultSource": "audiomack"
     }
   },
   "memory": {
     "enabled": true,
     "maxHistoryMessages": 20,
-    "maxMemoriesPerUser": 50
+    "maxMemoriesPerUser": 50,
+    "injectTopMemories": 10
   },
   "tools": {
     "enabled": true,
-    "allow": ["write_file", "web_search", "get_datetime", "sandbox", "linux_machine", "list_chats", "summarize_chat", "react", "screenshot", "send_sticker", "unwrap_view_once", "generate_image", "file_storage", "create_agent", "reelix_movies", "reelix_music"],
+    "allow": ["write_file", "web_search", "get_datetime", "sandbox", "linux_machine", "list_chats", "summarize_chat", "react", "screenshot", "send_sticker", "unwrap_view_once", "generate_image", "file_storage", "create_agent", "memory", "tasks"],
     "maxRounds": 10,
     "handoffAfterRounds": 3
   },

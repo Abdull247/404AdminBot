@@ -80,8 +80,10 @@ function compactValue(value) {
   }
 }
 
+const CANNED_QUESTION_KEYS = new Set(['admin_questions', 'creator_questions']);
+
 function isSkippedDefault(key, parentKey) {
-  return key === 'default' && parentKey === 'creator_questions';
+  return key === 'default' && CANNED_QUESTION_KEYS.has(parentKey);
 }
 
 function renderNode(key, value, depth, parentKey, usedLabel) {
@@ -155,9 +157,10 @@ function buildCurated(data) {
     for (const contact of contacts) lines.push(`  - ${contact}`);
   }
 
-  const canned = text(data.response_guidelines?.creator_questions?.default);
+  const canned = text(data.response_guidelines?.admin_questions?.default)
+    || text(data.response_guidelines?.creator_questions?.default);
   if (canned) {
-    lines.push(`- When someone asks who built, created, or owns you, a good concise answer is: "${canned}"`);
+    lines.push(`- When the boss asks who built, created, or owns you, a good concise answer is: "${canned}"`);
   }
 
   const rules = Array.isArray(data.instructions) ? data.instructions.map((rule) => text(rule)).filter(Boolean) : [];
@@ -176,9 +179,11 @@ function buildRendered(data) {
     if (CURATED_ROOT_KEYS.has(key)) continue;
     if (key === 'response_guidelines' && isPlainObject(value)) {
       const rest = { ...value };
-      if (isPlainObject(rest.creator_questions)) {
-        const { default: _ignored, ...creatorQuestionsRest } = rest.creator_questions;
-        rest.creator_questions = creatorQuestionsRest;
+      for (const questionKey of CANNED_QUESTION_KEYS) {
+        if (isPlainObject(rest[questionKey]) && 'default' in rest[questionKey]) {
+          const { default: _ignored, ...other } = rest[questionKey];
+          rest[questionKey] = other;
+        }
       }
       knowledge[key] = rest;
       continue;

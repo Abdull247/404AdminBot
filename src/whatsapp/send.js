@@ -1,9 +1,10 @@
 import fs from 'node:fs';
 import { logger } from '../utils/logger.js';
-import { env } from '../config/env.js';
+
+const MEDIA_UPLOAD_TIMEOUT_MS = 300000;
 
 function mediaUploadTimeoutMs() {
-  return env.REELIX_VIDEO_TIMEOUT_MS || 300000;
+  return MEDIA_UPLOAD_TIMEOUT_MS;
 }
 
 function fileExists(filePath) {
